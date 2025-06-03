@@ -626,6 +626,8 @@ class DigitalOut : private Port {
 	 */
 	using Port::set_value;
 
+	using Port::get_value;
+
 	using Port::get_port;
 
 	/**
