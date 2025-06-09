@@ -69,10 +69,18 @@ void opcontrol() {
 	topRight.set_brake_mode(pros::E_MOTOR_BRAKE_COAST);
 	bottomRight.set_brake_mode(pros::E_MOTOR_BRAKE_COAST);
 
-	// Driving variables
+	// Differential drive variables
 	int drvfb;
 	int drvlr;
 	int drvtrdz = 10;
+
+	// X-drive variables
+	int xLoc;
+	int yLoc;
+	int trueXLoc;
+	int trueYLoc;
+	bool isX = false;
+	double X = -3.14159/2;
 
 	while (true) {
 	/*
@@ -89,9 +97,31 @@ void opcontrol() {
       		leftDrivetrain.brake();
     	} 
 	*/
-	// X-Drive Control
-		std::cout << "x:" << master.get_analog(ANALOG_LEFT_X) << "\n";
-		std::cout << "y:" << master.get_analog(ANALOG_LEFT_Y) << "\n\n";
+
+	// X-Drive Control (+ the spinny spinny!)
+/*
+		xLoc = master.get_analog(ANALOG_RIGHT_X);
+		yLoc = master.get_analog(ANALOG_RIGHT_Y);
+
+		trueXLoc = (xLoc * std::cos(X)) + (yLoc * std::sin(X));
+		trueYLoc = -(xLoc * std::sin(X)) + (yLoc * std::cos(X));
+
+		topLeft.move(trueYLoc + master.get_analog(ANALOG_LEFT_X));
+		bottomRight.move(trueYLoc - master.get_analog(ANALOG_LEFT_X));
+
+		topRight.move(trueXLoc + master.get_analog(ANALOG_LEFT_X));
+		bottomLeft.move(trueXLoc - master.get_analog(ANALOG_LEFT_X));
+*/
+
+	// Mecanum Drive Control
+		xLoc = -master.get_analog(ANALOG_RIGHT_X);
+		yLoc = -master.get_analog(ANALOG_RIGHT_Y);
+
+		topRight.move((yLoc - xLoc) - master.get_analog(ANALOG_LEFT_X));
+		bottomRight.move((yLoc + xLoc) - master.get_analog(ANALOG_LEFT_X));
+
+		topLeft.move((yLoc + xLoc) + master.get_analog(ANALOG_LEFT_X));
+		bottomLeft.move((yLoc - xLoc) + master.get_analog(ANALOG_LEFT_X));
 
 	pros::delay(20);
 	}
