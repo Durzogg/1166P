@@ -26,6 +26,13 @@ struct Line {
     double yIntercept;
 };
 
+struct Vector {
+    double x;
+    double y;
+    double magnitude;
+    double angle;
+};
+
 struct MPPoint {
     double x;
     double y;

@@ -77,10 +77,8 @@ void opcontrol() {
 	// X-drive variables
 	int xLoc;
 	int yLoc;
-	int trueXLoc;
-	int trueYLoc;
-	bool isX = false;
-	double X = -3.14159/2;
+	int rotXLoc;
+	int deadzone = 15;
 
 	while (true) {
 	/*
@@ -98,30 +96,36 @@ void opcontrol() {
     	} 
 	*/
 
-	// X-Drive Control (+ the spinny spinny!)
-/*
+	// Mecanum Drive Control
 		xLoc = master.get_analog(ANALOG_RIGHT_X);
 		yLoc = master.get_analog(ANALOG_RIGHT_Y);
+		rotXLoc = master.get_analog(ANALOG_LEFT_X);
 
-		trueXLoc = (xLoc * std::cos(X)) + (yLoc * std::sin(X));
-		trueYLoc = -(xLoc * std::sin(X)) + (yLoc * std::cos(X));
+		if ((xLoc < deadzone) && (xLoc > -deadzone)) {
+			xLoc = 0;
+		}
+		if ((yLoc < deadzone) && (yLoc > -deadzone)) {
+			yLoc = 0;
+		}
 
-		topLeft.move(trueYLoc + master.get_analog(ANALOG_LEFT_X));
-		bottomRight.move(trueYLoc - master.get_analog(ANALOG_LEFT_X));
-
-		topRight.move(trueXLoc + master.get_analog(ANALOG_LEFT_X));
-		bottomLeft.move(trueXLoc - master.get_analog(ANALOG_LEFT_X));
-*/
-
-	// Mecanum Drive Control
-		xLoc = -master.get_analog(ANALOG_RIGHT_X);
-		yLoc = -master.get_analog(ANALOG_RIGHT_Y);
-
-		topRight.move((yLoc - xLoc) - master.get_analog(ANALOG_LEFT_X));
-		bottomRight.move((yLoc + xLoc) - master.get_analog(ANALOG_LEFT_X));
+		topRight.move((yLoc - xLoc) - rotXLoc);
+		bottomRight.move((yLoc + xLoc) - rotXLoc);
 
 		topLeft.move((yLoc + xLoc) + master.get_analog(ANALOG_LEFT_X));
 		bottomLeft.move((yLoc - xLoc) + master.get_analog(ANALOG_LEFT_X));
+
+
+	// Input Control
+	if (master.get_digital(pros::E_CONTROLLER_DIGITAL_R2)) {
+		inputLeft.move(128);
+		inputRight.move(-128);
+	} else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_R1)) {
+		inputLeft.move(-128);
+		inputRight.move(128);
+	} else {
+		inputLeft.brake();
+		inputRight.brake();
+	}
 
 	pros::delay(20);
 	}
