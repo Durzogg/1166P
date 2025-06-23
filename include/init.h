@@ -2,6 +2,7 @@
 #define _PROS_INIT_H_
 
 #include "main.h"
+#include "chassis.h"
 
 // Controllers
     extern pros::Controller master;
@@ -27,6 +28,8 @@
 
         extern pros::MotorGroup all6;
         extern pros::MotorGroup all2;
+
+        extern HoloChassis chassis;
 
     // Intake
         extern pros::Motor inputLeft;

@@ -1,4 +1,6 @@
 #include "init.h"
+#include "power-inl.h"
+#include "chassis.h"
 
 // Controllers
     pros::Controller master(pros::E_CONTROLLER_MASTER);
@@ -35,6 +37,8 @@
 
         pros::MotorGroup all6({1, -4, -5, 6}, pros::v5::MotorGears::blue, pros::v5::MotorEncoderUnits::degrees);
         pros::MotorGroup all2({99, 99, 99, 99}, pros::v5::MotorGears::green, pros::v5::MotorEncoderUnits::degrees);
+
+        HoloChassis chassis = HoloChassis({topLeft6, topLeft2}, {bottomLeft6, bottomLeft2}, {topRight6, topRight2}, {bottomRight6, bottomRight2});
         
     // Intake
         pros::Motor inputLeft(11, pros::v5::MotorGears::green, pros::v5::MotorEncoderUnits::degrees);

@@ -1,9 +1,11 @@
 #include "pid.h"
 
-PIDController::PIDController(TrackingSensor pidSensor, ConstantContainer constants, double tolerance) {
+PIDController::PIDController(TrackingSensor pidSensor, ConstantContainer constants, PowerUnit output, double tolerance) {
     m_sensor = pidSensor;
     m_constants = constants;
+    m_output = output;
     m_tolerance = tolerance;
+    m_movementTask = NULL;
 }
 
 void PIDController::movement(
@@ -15,18 +17,25 @@ void PIDController::movement(
     std::vector<double> executeAts // the distance point (in inches) that you want to trigger the custom lambda function at (optional)
     )
 {
+    bool canRun = movementLock.try_lock();
+    if (!canRun) {
+        return;
+    }
+    if (enableGoalModification) {
+        movementLock.unlock();
+        m_movementTask = new pros::Task([this, setPoint, reverse, customs, executeAts](){this->movement(setPoint, reverse, false, customs, executeAts);});
+    }
+
+    m_sensor.reset();
+
     // PID Calculation Variables
     // General Variables
     double power = 0;
 
     std::vector<bool> customsCompleted(customs.size(), false);
     bool actionCompleted = false;
-    int cyclesAtGoal = 0;
 
     double remainingDistance = setPoint;
-
-    // Odometry Measurement Setup
-    bool isPositive = setPoint > 0; // Checks if the movement is positive or negative
 
     // Odometry Pre-Measurement
 
@@ -42,7 +51,7 @@ void PIDController::movement(
     while (actionCompleted != true) {
 
         // gets the power for the current cycle
-        power = this->calculateOutput(currentDistanceMovedByWheel);
+        power = this->calculateOutput(currentDistanceMovedByWheel, setPoint);
 
         // reverses the direction if the robot has passed the set point
         if (std::abs(currentDistanceMovedByWheel) > std::abs(setPoint)) {
@@ -54,8 +63,7 @@ void PIDController::movement(
         }
 
         // moves the wheels at the desired power, ending the cycle
-        all6.move(power);
-        all2.move(power);
+        m_output.move(power);
 
 
 
@@ -71,10 +79,17 @@ void PIDController::movement(
             }
         }
 
-    // PID Looping Odometry Measurement
-
         // fifteen millisecond delay between cycles
         pros::delay(15);
+
+        // find new sensor location
+        currentDistanceMovedByWheel = m_sensor.get();
+
+        // applies any new mods
+        if (m_modFresh) {
+            setPoint = m_setPointMod;
+            m_modFresh = false;
+        }
 
         // calculates the distance moved as the difference between the distance left to move
         // and the total distance to move
@@ -83,12 +98,16 @@ void PIDController::movement(
         // checks to see if the robot has completed the movement by checking if it is within a range of the perpendicular line of its goal point
         if (remainingDistance <= 0 + m_tolerance) {
             actionCompleted = true;
-            all6.brake();
-            all2.brake();
+            m_output.stop();
         }
         
 }
 
+}
+
+void PIDController::modMovement(double setPoint) {
+    m_setPointMod = setPoint;
+    m_modFresh = true;
 }
 
 double PIDController::calculateOutput(

@@ -97,22 +97,8 @@ void opcontrol() {
 	*/
 
 	// Mecanum Drive Control
-		xLoc = master.get_analog(ANALOG_RIGHT_X);
-		yLoc = master.get_analog(ANALOG_RIGHT_Y);
-		rotXLoc = master.get_analog(ANALOG_LEFT_X);
-
-		if ((xLoc < deadzone) && (xLoc > -deadzone)) {
-			xLoc = 0;
-		}
-		if ((yLoc < deadzone) && (yLoc > -deadzone)) {
-			yLoc = 0;
-		}
-
-		topRight.move((yLoc - xLoc) - rotXLoc);
-		bottomRight.move((yLoc + xLoc) - rotXLoc);
-
-		topLeft.move((yLoc + xLoc) + master.get_analog(ANALOG_LEFT_X));
-		bottomLeft.move((yLoc - xLoc) + master.get_analog(ANALOG_LEFT_X));
+		chassis.driverControl(master, deadzone);
+		chassis.move();
 
 
 	// Input Control
