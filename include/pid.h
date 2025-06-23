@@ -3,33 +3,40 @@
 
 #include "profiling.h"
 #include "tracking-inl.h"
-#include "main.h"
+#include "init.h"
 
 class PIDController {
     public:
-        PIDController(TrackingSensor pidSensor, ConstantContainer constants, bool isMotion, Point goalPoint);
-
-    private:
-        PIDReturn calculateOutput(
-            double distanceMoved, // current distance moved (in odometry units)
-            double setPoint, // goal distance to move (in odometry units)
-            bool isPositive, // direction of movement
-            PIDReturn lastCycle // data from previous cycle
+        PIDController(
+            TrackingSensor pidSensor, // sensor that the PID will receive feedback from
+            ConstantContainer constants // PID tuning constants for the controller (must be tuned for every robot)
         );
+        PIDController() = default;
+
         void movement(
-            Point goalPosition, // goal coordinate position
-            bool reverse, // defaults to false- explicitly set to true to reverse the robot
+            double setPoint, // goal coordinate position
+            bool reverse = false, // defaults to false- explicitly set to true to reverse the robot
+            bool enableGoalModification = false, // defaults to false- explicitly set to true to make controller run as task and enable continuous modification to set point
         
             std::vector<std::function<void(void)>> customs, // a lambda function that will execute during the PID (optional)
             std::vector<double> executeAts // the distance point (in inches) that you want to trigger the custom lambda function at (optional)
         );
-
+    
+    
+    private:
+        double calculateOutput(
+            double distanceMoved, // current distance moved (in odometry units)
+            double setPoint, // goal distance to move (in odometry units)
+        );
         TrackingSensor m_sensor;
         ConstantContainer m_constants;
-        bool m_isMotion;
+        double m_tolerance;
+        pros::Task m_movementTask;
 
-        double p_error;
-        double p_integral;
+        double p_error = 0;
+        double p_integral = 0;
+
+        double p_time = 0;
 };
 
 #endif

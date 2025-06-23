@@ -1,48 +1,29 @@
 #include "pid.h"
 
-PIDController::PIDController(TrackingSensor pidSensor, ConstantContainer constants) {
-
+PIDController::PIDController(TrackingSensor pidSensor, ConstantContainer constants, double tolerance) {
+    m_sensor = pidSensor;
+    m_constants = constants;
+    m_tolerance = tolerance;
 }
 
 void PIDController::movement(
-    Point goalPosition, // goal coordinate position
+    double setPoint, // goal coordinate position
     bool reverse, // defaults to false- explicitly set to true to reverse the robot
+    bool enableGoalModification, // defaults to false- explicitly set to true to make controller run as task and enable continuous modification to set point
 
     std::vector<std::function<void(void)>> customs, // a lambda function that will execute during the PID (optional)
     std::vector<double> executeAts // the distance point (in inches) that you want to trigger the custom lambda function at (optional)
     )
 {
-
-
     // PID Calculation Variables
     // General Variables
     double power = 0;
 
-    double tolerance = 1;
     std::vector<bool> customsCompleted(customs.size(), false);
     bool actionCompleted = false;
     int cyclesAtGoal = 0;
-    int cyclesFlipping = 0;
 
-    // Constants (need to be tuned individually for every robot)
-    ConstantContainer moverConstants;
-        moverConstants.kP = 4; // 4
-        moverConstants.kI = 0.1; // 0.1
-        moverConstants.kD = 2.7; // 2.7
-
-
-
-
-
-
-    // sets the set point to the difference between the current point and the goal point
-    Point originalPosition = {universalCurrentLocation.x, universalCurrentLocation.y};
-    double setPoint = calculateDistance(originalPosition, goalPosition);
     double remainingDistance = setPoint;
-    bool greaterThanNegativeLine = false;
-
-    // finds the part of the coordinate plane in which the robot has passed its destination
-    Inequality negativeSide = calculatePerpendicularInequality(originalPosition, goalPosition);
 
     // Odometry Measurement Setup
     bool isPositive = setPoint > 0; // Checks if the movement is positive or negative
@@ -50,42 +31,22 @@ void PIDController::movement(
     // Odometry Pre-Measurement
 
     // used to measure the rotational sensor values of all the motors (this comes in degrees)
-    double currentDistanceMovedByWheel = readOdomPod(Rotational);
+    double currentDistanceMovedByWheel = m_sensor.get();
 
     // this initializes variables that are used to measure values from previous cycles
-    PIDReturn cycle;
-    cycle.prevError = setPoint - currentDistanceMovedByWheel;
-    cycle.power = 0;
-    cycle.prevIntegral = 0;
+    p_error = setPoint - currentDistanceMovedByWheel;
+    p_integral = 0;
 
 
 
     while (actionCompleted != true) {
 
         // gets the power for the current cycle
-        cycle = PIDCalc(currentDistanceMovedByWheel, setPoint, isPositive, moverConstants, cycle);
-        /*
-        // checks to see if the robot has been flipping between directions and stops in the exit condition if it is
-        if ((power > 0 && cycle.power < 0) || (power < 0 && cycle.power > 0)) {
-            cyclesFlipping++;
-        }
-        */
-        power = cycle.power;
+        power = this->calculateOutput(currentDistanceMovedByWheel);
 
-        // finds if the robot has passed the perpendicular line's inequality or not
-        greaterThanNegativeLine = universalCurrentLocation.y >= (negativeSide.slope * universalCurrentLocation.x) + negativeSide.yIntercept;
-
-        // handles the line if it is vertical
-        if (std::isnan(negativeSide.slope)) {
-            greaterThanNegativeLine = universalCurrentLocation.x > negativeSide.yIntercept;
-        } else if (negativeSide.slope == 0) {
-            greaterThanNegativeLine = universalCurrentLocation.y > negativeSide.yIntercept;
-        }
-
-        // reverses the direction if the robot has passed the inequality
-        if ((greaterThanNegativeLine && negativeSide.equality < 0) ||
-            (!greaterThanNegativeLine && negativeSide.equality > 0)) {
-                power *= -1;
+        // reverses the direction if the robot has passed the set point
+        if (std::abs(currentDistanceMovedByWheel) > std::abs(setPoint)) {
+            power *= -1;
         }
         // reverses the direction if the robot has been commanded to move in reverse
         if (reverse) {
@@ -93,7 +54,8 @@ void PIDController::movement(
         }
 
         // moves the wheels at the desired power, ending the cycle
-        drivetrain.move(power);
+        all6.move(power);
+        all2.move(power);
 
 
 
@@ -114,61 +76,26 @@ void PIDController::movement(
         // fifteen millisecond delay between cycles
         pros::delay(15);
 
-        std::cout << "ucl = " << universalCurrentLocation.x << ", " << universalCurrentLocation.y << "\n";
-
-
-        if (std::isnan(findIntersection(findLineWithHeading({universalCurrentLocation.x, universalCurrentLocation.y}, universalCurrentLocation.heading), {negativeSide.slope, negativeSide.yIntercept}).x) ||
-            std::isnan(findIntersection(findLineWithHeading({universalCurrentLocation.x, universalCurrentLocation.y}, universalCurrentLocation.heading), {negativeSide.slope, negativeSide.yIntercept}).y)) {
-            continue;
-        }
-        // fixes the goal point to be in front of where we are facing
-        goalPosition = findIntersection(findLineWithHeading({universalCurrentLocation.x, universalCurrentLocation.y}, universalCurrentLocation.heading), {negativeSide.slope, negativeSide.yIntercept});
-        setPoint = calculateDistance(originalPosition, goalPosition);
-
         // calculates the distance moved as the difference between the distance left to move
         // and the total distance to move
-        remainingDistance = calculateDistance({universalCurrentLocation.x, universalCurrentLocation.y}, goalPosition);
-        currentDistanceMovedByWheel = setPoint - remainingDistance;
-
-        std::cout << "remaining = " << remainingDistance << "\n";
-
-        pros::lcd::print(0, "remaining = %f", remainingDistance);
+        remainingDistance = setPoint - currentDistanceMovedByWheel;
 
         // checks to see if the robot has completed the movement by checking if it is within a range of the perpendicular line of its goal point
-        if (remainingDistance <= 0 + tolerance)
-            {
-                if (true) {
-                    actionCompleted = true;
-                    drivetrain.brake();
-                } else {
-                    cyclesAtGoal++;
-                }
-            } else {
-                cyclesAtGoal = 0;
-            }
-
-        
-
-        
-        // checks to see if the robot has been flipping back and forth in direction at the exit location and stops it if id does
-        /*   if (cyclesFlipping >= 5) {
-                actionCompleted = true;
-                AllWheels.brake();
+        if (remainingDistance <= 0 + m_tolerance) {
+            actionCompleted = true;
+            all6.brake();
+            all2.brake();
         }
-        */
         
 }
 
 }
 
-PIDReturn PIDController::calculateOutput(
+double PIDController::calculateOutput(
 	double distanceMoved, // current distance moved (in odometry units)
-	double setPoint, // goal distance to move (in odometry units)
-	bool isPositive, // direction of movement
-	PIDReturn lastCycle // data from previous cycle
+	double setPoint // goal distance to move (in odometry units)
 	)
 {
-	PIDReturn thisCycle;
 	// P: Proportional -- slows down as we reach our target for more accuracy
 
 		// error = goal reading - current reading
@@ -191,7 +118,7 @@ PIDReturn PIDController::calculateOutput(
 		// prevents the integral from winding up too much, causing the number to be beyond the control of
         // even kI
 		// if we want to make this better, see Solution #3 for 3.3.2 in the packet
-		/* if (((isPositive) && (error >= 100)) || ((!isPositive) && (error <= -100))) {
+		/* if (((setPoint > 0) && (error >= 100)) || ((setPoint < 0) && (error <= -100))) {
 			integral = 0;
 			}
 		*/
@@ -204,7 +131,7 @@ PIDReturn PIDController::calculateOutput(
 		double integralOut = integral * m_constants.kI;
 
 		// adds integral to return structure for compounding
-		thisCycle.prevIntegral = integral;
+		p_integral = integral;
 
 
 
@@ -214,18 +141,18 @@ PIDReturn PIDController::calculateOutput(
         double derivative = error - p_error;
 
         // kD (derivative constant) prevents derivative from over- or under-scaling
-        double derivativeOut = derivative * m_constants.kD;
+        double derivativeOut = (derivative * m_constants.kD) / ((pros::millis() - p_time) / 15);
 
 		// sets the previous error to the current error for use in the next derivative
-		thisCycle.prevError = error;
+		p_error = error;
 
-
+        // tracks the time of this check so that the next check will not overdo the derivative 
+        // due to a large change over a large amount of time
+        p_time = pros::millis();
 
 	// Adds the results of each of the calculations together to get the desired power
 		double power = proportionalOut + integralOut + derivativeOut;
 
-		thisCycle.power = power;
-
 	// returns a PIDReturn structure
-		return thisCycle;
+		return power;
 }
