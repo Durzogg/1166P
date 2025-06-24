@@ -1,4 +1,4 @@
-#include "init.h"
+#include "config.h"
 
 VelocityController::VelocityController(std::vector<std::function<void(void)>> actions, std::vector<double> actionTs) {
     //this->actions = {[](){master.rumble(".");pros::lcd::print(0, "0.25");}, [](){master.rumble(".");pros::lcd::print(1, "0,5");intake.move(128);}, [](){master.rumble(".");pros::lcd::print(2, "0.9");}};

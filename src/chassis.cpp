@@ -18,6 +18,13 @@ HoloChassis::HoloChassis(std::vector<pros::Motor> FL, std::vector<pros::Motor> F
         [this](double power) {m_thetaPower = power;},
         [this]() {m_thetaPower = 0;}
     );
+    chassisTask = NULL;
+}
+
+HoloChassis::~HoloChassis() {
+    if (chassisTask == NULL) {
+        chassisTask->remove();
+    }
 }
 
 void HoloChassis::move() {
@@ -60,5 +67,17 @@ void HoloChassis::brakeMode(pros::MotorBrake type) {
     }
     for (int i = 0; i < m_BR.size(); i++) {
         m_BR[i].set_brake_mode(type);
+    }
+}
+
+void HoloChassis::continuousPower() {
+    bool hasNotStarted = chassisLock.try_lock();
+    if (hasNotStarted) {
+        chassisTask = new pros::Task([this](){
+                while (true) {
+                this->driverControl(master, 15);
+                pros::delay(5);
+            }
+        });
     }
 }

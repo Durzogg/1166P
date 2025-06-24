@@ -8,10 +8,16 @@ PIDController::PIDController(TrackingSensor pidSensor, ConstantContainer constan
     m_movementTask = NULL;
 }
 
+PIDController::~PIDController() {
+    if (m_movementTask != NULL) {
+        m_movementTask->remove();
+    }
+}
+
 void PIDController::movement(
     double setPoint, // goal coordinate position
     bool reverse, // defaults to false- explicitly set to true to reverse the robot
-    bool enableGoalModification, // defaults to false- explicitly set to true to make controller run as task and enable continuous modification to set point
+    bool blocking, // defaults to true- explicitly set to true to make controller run as task
 
     std::vector<std::function<void(void)>> customs, // a lambda function that will execute during the PID (optional)
     std::vector<double> executeAts // the distance point (in inches) that you want to trigger the custom lambda function at (optional)
@@ -21,7 +27,7 @@ void PIDController::movement(
     if (!canRun) {
         return;
     }
-    if (enableGoalModification) {
+    if (blocking) {
         movementLock.unlock();
         m_movementTask = new pros::Task([this, setPoint, reverse, customs, executeAts](){this->movement(setPoint, reverse, false, customs, executeAts);});
     }

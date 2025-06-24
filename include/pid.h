@@ -15,6 +15,7 @@ class PIDController {
             double tolerance // the acceptable deviation from the set point (inches)
         );
         PIDController() = default;
+        ~PIDController();
 
         void movement(
             double setPoint, // goal coordinate position

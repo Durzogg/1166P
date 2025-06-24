@@ -148,7 +148,7 @@ class VelocityController {
 
 
     private:
-        std::vector<double> calculateOutputOfSides(double linearVelocityMPS, double angularVelocityRADPS, double profileMaxIPS);
+        std::vector<double> calculateOutputOfSides(Vector linearVelocityIPS, double angularVelocityRADPS, double profileMaxIPS);
         double calculateSingleDegree(double wheelDiameter);
         void followProfile(MotionProfile* profile, bool reverse, bool RAMSETE);
         

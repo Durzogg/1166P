@@ -1,4 +1,10 @@
-#include "init.h"
+#include "config.h"
+#include "odom.h"
+
+OdomPod::OdomPod(pros::Rotation* odom, double wheelDiameter) {
+    m_odom = odom;
+    m_diameter = wheelDiameter;
+}
 
 double calculateSingleDegree(double wheelDiameter) {
     // sets up the odometry to convert angle readings to cm
@@ -9,12 +15,12 @@ double calculateSingleDegree(double wheelDiameter) {
 }
 
 
-double readOdomPod(pros::Rotation odom) {
+double OdomPod::measure(void) {
     // gets the centimeter distance moved in a single degree of rotation
-    double singleDegree = calculateSingleDegree(2.015); // 2 is the pre-measured wheel diameter in inches (may need to be changed for precision)
+    double singleDegree = calculateSingleDegree(m_diameter); // 2 is the pre-measured wheel diameter in inches (may need to be changed for precision)
 
     // gets the reading from the rotational sensor
-    int rawReading = odom.get_position() * -1; // gives centidegrees (a 0-36,000 scale)
+    int rawReading = m_odom->get_position() * -1; // gives centidegrees (a 0-36,000 scale)
     double readingDeg = rawReading / 100; // reduces the centidegrees to degrees (a 0-360 scale)
     
     // converts the reading to centimeters
@@ -24,13 +30,13 @@ double readOdomPod(pros::Rotation odom) {
 }
 
 
-double readOdomVelocity(pros::Rotation odom) {
+double OdomPod::measureVelocity(void) {
     // gets the centimeter distance moved in a single degree of rotation
     double singleDegree = calculateSingleDegree(2); // 2 is the pre-measured wheel diameter in inches
 
 
     // gets the reading from the rotational sensor
-    int rawReading = odom.get_velocity(); // gives centidegrees (a 0-36,000 scale) per second
+    int rawReading = m_odom->get_velocity(); // gives centidegrees (a 0-36,000 scale) per second
     double readingDeg = rawReading / 100; // reduces the centidegrees to degrees (a 0-360 scale) per second
     
     // converts the reading to centimeters
@@ -39,12 +45,12 @@ double readOdomVelocity(pros::Rotation odom) {
     return rawReading;
 }
 
-double readOdomAngle(pros::Rotation turnOdom) {
+double OdomPod::measureHeading(void) {
     // the pre-measured distance between the robot's center of rotation
     double distanceBetweenCenterAndOdom = 10.0;
 
     // gets the distance that the robot moved (in cm)
-    double odomReading = (double) readOdomPod(turnOdom);
+    double odomReading = (double) this->measure();
 
     // the angle that the robot has moved
     // measured by finding the central angle of the arc with the distance from the odom pod
@@ -56,30 +62,32 @@ double readOdomAngle(pros::Rotation turnOdom) {
     return robotHeadingDegrees;
 }
 
-void initializeRobotOnCoordinate(pros::Rotation *rotational, // parallel rotational sensor
-                          pros::Imu *imu1, // first inertial sensor
-                          pros::Imu *imu2, // second inertial sensor
-                          Point offset, // an ordered pair representing the current 
-                                             // location of the robot in relation to the origin
-                          int startHeading // starting heading in relation to the absolute zero heading
+
+
+
+
+Odometry::Odometry(TrackingSensor movementSensor, // this sensor should track how far the robot has moved in some way
+                        TrackingSensor headingSensor, // this sensor should track how far the robot has turned in some way
+                        Pose startPosition // the pose that the robot starts at at the start of autonomous
                         ) 
 {
+
+
     // sets the current location to the offset
-    universalCurrentLocation = {offset.x, offset.y, (double) startHeading};
+    m_robotPose = startPosition;
 
     // resets the rotational sensor to zero
-    rotational->set_position(0);
+    movementSensor.reset();
 
     // sets the headings to the heading offset
-    imu1->set_heading(startHeading);
-    imu2->set_heading(startHeading);
+    headingSensor.set(startPosition.heading);
 }
 
 
-Point updateLocation(double heading, double dist) {
+Point Odometry::update(double heading, double moved) {
     double originalHeading = heading;
     // switches the heading based on the direction of the turn
-    heading = dist >= 0
+    heading = moved >= 0
         ? heading // does nothing if the distance moved is positive
         : heading < 180 // flips if the distance moved is negative
             ? heading + 180 // flips the heading to itself + 180 if it is less than 180, putting it on the greater side of the circle
@@ -102,13 +110,13 @@ Point updateLocation(double heading, double dist) {
     double yChange = 0;
     // if the heading is in quadrants 1 or 3, then the x-value is the opposite leg (sine) and the y-value is the adjacent leg (cosine)
     if ((heading < 90) || (heading >= 180 && heading < 270)) {
-        xChange = std::sin(((triangleAngle * M_PI) / 180)) * dist;
-        yChange = std::cos(((triangleAngle * M_PI) / 180)) * dist;
+        xChange = std::sin(((triangleAngle * M_PI) / 180)) * moved;
+        yChange = std::cos(((triangleAngle * M_PI) / 180)) * moved;
     }
     // otherwise, if the heading is in quadrants 2 or 4, then the x-value is the adjacent leg (cosine) and the y-value is the opposite leg (sine)
     else {
-        xChange = std::cos(((triangleAngle * M_PI) / 180)) * dist;
-        yChange = std::sin(((triangleAngle * M_PI) / 180)) * dist;
+        xChange = std::cos(((triangleAngle * M_PI) / 180)) * moved;
+        yChange = std::sin(((triangleAngle * M_PI) / 180)) * moved;
     }
 
     // reverses the movement of x and y if they moved in a positive direction and moved down or if they moved in a negative direction and moved up
@@ -121,17 +129,22 @@ Point updateLocation(double heading, double dist) {
     }
 
     // sets the final x and y positions to the changes in x and y added to the previous coordinates
-    double xLoc = universalCurrentLocation.x + xChange;
-    double yLoc = universalCurrentLocation.y + yChange;
+    double xLoc = m_robotPose.x + xChange;
+    double yLoc = m_robotPose.y + yChange;
 
     return {xLoc, yLoc};
 }
 
 // continually updates the value of the universal current location for use by every function
-void updateCoordinateLoop() {
+void Odometry::updateLoop() {
+    if (!m_taskRunning) {
+        m_taskRunning = true;
+        loopTask = new pros::Task([this](){this->updateLoop();});
+        return;
+    }
 
     // declaration of previous location
-    Pose previousLocation = universalCurrentLocation;
+    Pose previousLocation = m_robotPose;
     // calculates the change in odometry for the location update
     double changeInOdom = 0;
     double previousOdom = 0;
@@ -141,22 +154,22 @@ void updateCoordinateLoop() {
         if (!pros::Task::notify_take(true, 5)) { // while task is not paused by notification, run cycle 
                                                 // (the 5 waits for 5 milliseconds before the loop starts and serves as the delay)
             // calculates the current distance moved
-            cumulativeOdom = readOdomPod(Rotational);
+            cumulativeOdom = m_movementSensor.get();
             // calculates the change in odometry reading based on the previous measurement
             changeInOdom = cumulativeOdom - previousOdom;
             // updates the location
-            double newHeading = getAggregatedHeading(Kalman1, Kalman2);
-            Point newLocation = updateLocation(newHeading, changeInOdom);
+            double newHeading = m_headingSensor.get();
+            Point newLocation = this->update(newHeading, changeInOdom);
             //universalCurrentLocation = {newLocation.x, newLocation.y, Inertial1.get_heading()};
-            universalCurrentLocation = {newLocation.x, newLocation.y, newHeading};
+            m_robotPose = {newLocation.x, newLocation.y, newHeading};
             //std::cout << "x = " << universalCurrentLocation.x << ", y = " << universalCurrentLocation.y << ", h = " << universalCurrentLocation.heading << "\n";
             // previous location for use in next cycle
-            previousLocation = universalCurrentLocation;
+            previousLocation = m_robotPose;
             // cumulative odometry value for use in next cycle as previous value
             previousOdom = cumulativeOdom;
         } else { // ensures that the code does not break while it is paused by a notification
             previousOdom = cumulativeOdom;
-            previousLocation = universalCurrentLocation;
+            previousLocation = m_robotPose;
         }
     }
 }

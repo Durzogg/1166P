@@ -1,4 +1,4 @@
-#include "init.h"
+#include "config.h"
 
 void PIDMover(
 		Point goalPosition, // goal coordinate position

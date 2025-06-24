@@ -1,4 +1,4 @@
-#include "init.h"
+#include "config.h"
 #include "power-inl.h"
 #include "chassis.h"
 
@@ -6,14 +6,6 @@
     pros::Controller master(pros::E_CONTROLLER_MASTER);
 
 // Motors
-    // X-Drivetrain
-        /*
-        pros::Motor topLeft(13, pros::v5::MotorGears::blue, pros::v5::MotorEncoderUnits::degrees);
-        pros::Motor bottomLeft(11,pros::v5::MotorGears::blue, pros::v5::MotorEncoderUnits::degrees);
-        pros::Motor topRight(-8, pros::v5::MotorGears::blue, pros::v5::MotorEncoderUnits::degrees);
-        pros::Motor bottomRight(-17, pros::v5::MotorGears::blue, pros::v5::MotorEncoderUnits::degrees);
-        */
-
     // Mecanum Drivetrain
         
         pros::Motor topLeft6(1, pros::v5::MotorGears::blue, pros::v5::MotorEncoderUnits::degrees);
@@ -37,18 +29,19 @@
 
         pros::MotorGroup all6({1, -4, -5, 6}, pros::v5::MotorGears::blue, pros::v5::MotorEncoderUnits::degrees);
         pros::MotorGroup all2({99, 99, 99, 99}, pros::v5::MotorGears::green, pros::v5::MotorEncoderUnits::degrees);
-
-        HoloChassis chassis = HoloChassis({topLeft6, topLeft2}, {bottomLeft6, bottomLeft2}, {topRight6, topRight2}, {bottomRight6, bottomRight2});
         
     // Intake
         pros::Motor inputLeft(11, pros::v5::MotorGears::green, pros::v5::MotorEncoderUnits::degrees);
         pros::Motor inputRight(5, pros::v5::MotorGears::green, pros::v5::MotorEncoderUnits::degrees);
 
+// Program Module Initialization
+
+    HoloChassis chassis = HoloChassis({topLeft6, topLeft2}, {bottomLeft6, bottomLeft2}, {topRight6, topRight2}, {bottomRight6, bottomRight2});
 
 // Global Values
-        double g_gearRatio6 = 0.8;
-        double g_gearRatio2 = 3;
-        double g_maxRPM = 480;
-        double g_diameter = 4;
+    double g_gearRatio6 = 0.8;
+    double g_gearRatio2 = 3;
+    double g_maxRPM = 480;
+    double g_diameter = 4;
     
         

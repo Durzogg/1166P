@@ -1,4 +1,4 @@
-#include "init.h"
+#include "config.h"
 
 /**
  * Runs initialization code. This occurs as soon as the program is started.
@@ -61,13 +61,6 @@ void autonomous() {
 void opcontrol() {
 
 	master.rumble("-.-");
-	
-
-	// Front, Middle, Rear
-	topLeft.set_brake_mode(pros::E_MOTOR_BRAKE_COAST);
-	bottomLeft.set_brake_mode(pros::E_MOTOR_BRAKE_COAST);
-	topRight.set_brake_mode(pros::E_MOTOR_BRAKE_COAST);
-	bottomRight.set_brake_mode(pros::E_MOTOR_BRAKE_COAST);
 
 	// Differential drive variables
 	int drvfb;

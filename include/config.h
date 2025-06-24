@@ -1,5 +1,5 @@
-#ifndef _PROS_INIT_H_
-#define _PROS_INIT_H_
+#ifndef _PROS_CONFIG_H_
+#define _PROS_CONFIG_H_
 
 #include "main.h"
 #include "chassis.h"
