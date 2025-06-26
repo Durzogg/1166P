@@ -2,7 +2,7 @@
 #define _CHASSIS_H_
 
 #include <vector>
-#include "config.h"
+#include "main.h"
 #include "power-inl.h"
 
 class HoloChassis {

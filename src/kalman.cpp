@@ -1,4 +1,5 @@
 #include "main.h"
+#include "kalman.h"
 
 double getAggregatedHeading(KalmanFilter inertial1, KalmanFilter inertial2) {
     // gets heading from each of the sensors
@@ -89,7 +90,7 @@ void KalmanFilter::KalmanFilterLoop()
                     }
 
                 // VELOCITY UPDATE
-                velocity = readOdomVelocity(*turnRotational);
+                velocity = angVelReader.get();
 
                 // VARIANCE/DEVIATION CALCULATION
 
@@ -119,7 +120,7 @@ void KalmanFilter::KalmanFilterLoop()
 
 
 // constructor (public)
-KalmanFilter::KalmanFilter(pros::IMU* inertial, pros::Rotation* turnRotational) {
+KalmanFilter::KalmanFilter(pros::IMU* inertial, TrackingSensor angVelReader) {
 
     // instance variable initializations
     filterLoop_ptr = NULL; // sets the filter loop pointer to null so it can be defined later
@@ -129,7 +130,7 @@ KalmanFilter::KalmanFilter(pros::IMU* inertial, pros::Rotation* turnRotational) 
     delay = 5; // delay (in ms) between cycles
 
     this->inertial = inertial; // takes the IMU for its heading
-    this->turnRotational = turnRotational; // takes the turning rotation
+    this->angVelReader = angVelReader; // takes the turning rotation
 }
 
 /* 

@@ -4,7 +4,7 @@
 #include "profiling.h"
 #include "tracking-inl.h"
 #include "power-inl.h"
-#include "init.h"
+#include "main.h"
 
 class PIDController {
     public:

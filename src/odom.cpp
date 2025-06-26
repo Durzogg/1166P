@@ -1,4 +1,3 @@
-#include "config.h"
 #include "odom.h"
 
 OdomPod::OdomPod(pros::Rotation* odom, double wheelDiameter) {
@@ -64,14 +63,38 @@ double OdomPod::measureHeading(void) {
 
 
 
+Odometry::Odometry(TrackingSensor movementSensor, // this sensor should track how far the robot has moved in some way
+    TrackingSensor headingSensor, // this sensor should track how far the robot has turned in some way
+    Pose startPosition // the pose that the robot starts at at the start of autonomous
+    ) 
+{
+    m_movementSensor = movementSensor;
+    m_headingSensor = headingSensor;
+
+    m_isHolo = false;
+
+    // sets the current location to the offset
+    m_robotPose = startPosition;
+
+    // resets the rotational sensor to zero
+    movementSensor.reset();
+
+    // sets the headings to the heading offset
+    headingSensor.set(startPosition.heading);
+}
 
 
 Odometry::Odometry(TrackingSensor movementSensor, // this sensor should track how far the robot has moved in some way
                         TrackingSensor headingSensor, // this sensor should track how far the robot has turned in some way
-                        Pose startPosition // the pose that the robot starts at at the start of autonomous
+                        Pose startPosition, // the pose that the robot starts at at the start of autonomous
+                        TrackingSensor sideSensor // side movement sensor (optional)
                         ) 
 {
+    m_movementSensor = movementSensor;
+    m_headingSensor = headingSensor;
+    m_sideSensor = sideSensor;
 
+    m_isHolo = true;
 
     // sets the current location to the offset
     m_robotPose = startPosition;
@@ -86,6 +109,12 @@ Odometry::Odometry(TrackingSensor movementSensor, // this sensor should track ho
 
 Point Odometry::update(double heading, double moved) {
     double originalHeading = heading;
+
+    // changes the heading if the odom pode is a perpendicular one
+    if (m_isSide) {
+        heading += 180;
+    }
+
     // switches the heading based on the direction of the turn
     heading = moved >= 0
         ? heading // does nothing if the distance moved is positive
@@ -132,11 +161,15 @@ Point Odometry::update(double heading, double moved) {
     double xLoc = m_robotPose.x + xChange;
     double yLoc = m_robotPose.y + yChange;
 
-    return {xLoc, yLoc};
+    return {xChange, yChange};
 }
 
 // continually updates the value of the universal current location for use by every function
 void Odometry::updateLoop() {
+    if (m_isHolo) {
+        holoUpdateLoop();
+        return;
+    }
     if (!m_taskRunning) {
         m_taskRunning = true;
         loopTask = new pros::Task([this](){this->updateLoop();});
@@ -159,9 +192,9 @@ void Odometry::updateLoop() {
             changeInOdom = cumulativeOdom - previousOdom;
             // updates the location
             double newHeading = m_headingSensor.get();
-            Point newLocation = this->update(newHeading, changeInOdom);
+            Point changeInLocation = this->update(newHeading, changeInOdom);
             //universalCurrentLocation = {newLocation.x, newLocation.y, Inertial1.get_heading()};
-            m_robotPose = {newLocation.x, newLocation.y, newHeading};
+            m_robotPose = {m_robotPose.x + changeInLocation.x, m_robotPose.y + changeInLocation.y, newHeading};
             //std::cout << "x = " << universalCurrentLocation.x << ", y = " << universalCurrentLocation.y << ", h = " << universalCurrentLocation.heading << "\n";
             // previous location for use in next cycle
             previousLocation = m_robotPose;
@@ -169,6 +202,55 @@ void Odometry::updateLoop() {
             previousOdom = cumulativeOdom;
         } else { // ensures that the code does not break while it is paused by a notification
             previousOdom = cumulativeOdom;
+            previousLocation = m_robotPose;
+        }
+    }
+}
+
+void Odometry::holoUpdateLoop() {
+    if (!m_taskRunning) {
+        m_taskRunning = true;
+        loopTask = new pros::Task([this](){this->updateLoop();});
+        return;
+    }
+
+    // declaration of previous location
+    Pose previousLocation = m_robotPose;
+    // calculates the change in odometry for the location update
+    double changeInXOdom = 0;
+    double previousXOdom = 0;
+    double cumulativeXOdom = 0;
+
+    double changeInYOdom = 0;
+    double previousYOdom = 0;
+    double cumulativeYOdom = 0;
+    
+    while (true) {
+        if (!pros::Task::notify_take(true, 5)) { // while task is not paused by notification, run cycle 
+                                                // (the 5 waits for 5 milliseconds before the loop starts and serves as the delay)
+            // calculates the current distance moved
+            cumulativeXOdom = m_movementSensor.get();
+            cumulativeYOdom = m_sideSensor.get();
+            // calculates the change in odometry reading based on the previous measurement
+            changeInXOdom = cumulativeXOdom - previousXOdom;
+            changeInYOdom = cumulativeYOdom - previousYOdom;
+            // updates the location
+            double newHeading = m_headingSensor.get();
+            Point changeInXLocation = this->update(newHeading, changeInXOdom);
+            m_isSide = true;
+            Point changeInYLocation = this->update(newHeading, changeInYOdom);
+            m_isSide = false;
+            //universalCurrentLocation = {newLocation.x, newLocation.y, Inertial1.get_heading()};
+            m_robotPose = {m_robotPose.x + changeInXLocation.x + changeInYLocation.x, m_robotPose.y + changeInXLocation.y + changeInYLocation.y, newHeading};
+            //std::cout << "x = " << universalCurrentLocation.x << ", y = " << universalCurrentLocation.y << ", h = " << universalCurrentLocation.heading << "\n";
+            // previous location for use in next cycle
+            previousLocation = m_robotPose;
+            // cumulative odometry value for use in next cycle as previous value
+            previousXOdom = cumulativeXOdom;
+            previousYOdom = cumulativeYOdom;
+        } else { // ensures that the code does not break while it is paused by a notification
+            previousXOdom = cumulativeXOdom;
+            previousYOdom = cumulativeYOdom;
             previousLocation = m_robotPose;
         }
     }
