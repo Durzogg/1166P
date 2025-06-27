@@ -18,6 +18,21 @@ HoloChassis::HoloChassis(std::vector<pros::Motor*> FL, std::vector<pros::Motor*>
         [this](double power) {m_thetaPower = power;},
         [this]() {m_thetaPower = 0;}
     );
+
+
+    m_xOutputCorrect = PowerUnit(
+        [this](double power) {m_xCorrect = power;},
+        [this]() {m_xCorrect = 0;}
+    );
+    m_yOutputCorrect = PowerUnit(
+        [this](double power) {m_yCorrect = power;},
+        [this]() {m_yCorrect = 0;}
+    );
+    m_thetaOutputCorrect = PowerUnit(
+        [this](double power) {m_thetaCorrect = power;},
+        [this]() {m_thetaCorrect = 0;}
+    );
+
     chassisTask = NULL;
 }
 
@@ -29,16 +44,16 @@ HoloChassis::~HoloChassis() {
 
 void HoloChassis::move() {
     for (int i = 0; i < m_FL.size(); i++) {
-        m_FL[i]->move((m_yPower + m_xPower) + m_thetaPower);
+        m_FL[i]->move(((m_yPower + m_yCorrect) + (m_xPower + m_xCorrect)) + (m_thetaPower + m_thetaCorrect));
     }
     for (int i = 0; i < m_FR.size(); i++) {
-        m_FR[i]->move((m_yPower - m_xPower) - m_thetaPower);
+        m_FR[i]->move(((m_yPower + m_yCorrect) - (m_xPower + m_xCorrect)) - (m_thetaPower + m_thetaCorrect));
     }
     for (int i = 0; i < m_BL.size(); i++) {
-        m_BL[i]->move((m_yPower - m_xPower) + m_thetaPower);
+        m_BL[i]->move(((m_yPower + m_yCorrect) - (m_xPower + m_xCorrect)) + (m_thetaPower + m_thetaCorrect));
     }
     for (int i = 0; i < m_BR.size(); i++) {
-        m_BR[i]->move((m_yPower + m_xPower) - m_thetaPower);
+        m_BR[i]->move(((m_yPower + m_yCorrect) + (m_xPower + m_xCorrect)) - (m_thetaPower + m_thetaCorrect));
     }
 }
 

@@ -19,20 +19,30 @@ class HoloChassis {
         void setY(double power);
         void setTheta(double power);
 
+
+        PowerUnit m_xOutput;
+        PowerUnit m_xOutputCorrect;
+
+        PowerUnit m_yOutput;
+        PowerUnit m_yOutputCorrect;
+
+        PowerUnit m_thetaOutput;
+        PowerUnit m_thetaOutputCorrect;
+
     private:
         std::vector<pros::Motor*> m_FL;
         std::vector<pros::Motor*> m_FR;
         std::vector<pros::Motor*> m_BL;
         std::vector<pros::Motor*> m_BR;
 
-        PowerUnit m_xOutput;
         double m_xPower;
+        double m_xCorrect;
 
-        PowerUnit m_yOutput;
         double m_yPower;
+        double m_yCorrect;
 
-        PowerUnit m_thetaOutput;
         double m_thetaPower;
+        double m_thetaCorrect;
 
         pros::Mutex chassisLock;
         pros::Task* chassisTask;

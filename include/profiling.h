@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <functional>
+#include "proxy.h"
 
 struct Point {
     double x;
@@ -39,6 +40,16 @@ struct MPPoint {
     double y;
     double heading;
     double linVel;
+    double angVel;
+    double t;
+    double timeAtPoint;
+};
+
+struct HoloMPPoint {
+    double x;
+    double y;
+    double heading;
+    Vector linVel;
     double angVel;
     double t;
     double timeAtPoint;
@@ -116,23 +127,30 @@ class MotionProfile {
     public:
         // constructors (one with custom zoning, one without)
         MotionProfile(CubicHermiteSpline* path, double maxSpeed, std::vector<std::vector<Point>> zonePoints = {});
+        MotionProfile(CubicHermiteSpline* path, double maxSpeed, std::vector<double> headings, std::vector<double> headingTs, std::vector<std::vector<Point>> zonePoints = {});
         MotionProfile(std::vector<MPPoint>* pregeneratedProfile, double maxSpeed);
 
         // instance variables (data about profile)
         std::vector<MPPoint> profile;
+        std::vector<HoloMPPoint> holoProfile;
         std::vector<Zone> zones;
         double maxSpeed;
 
         // public methods (operations on points)
         MPPoint findNearestPoint(double givenT);
+        HoloMPPoint findNearestHoloPoint(double givenT);
 
     private:
         // private methods (profile generation)
         void generateVelocities(void);
         void constructWithCustomZones(std::vector<std::vector<Point>> zoneLinePoints);
+        double customHeading(double t);
 
         // private instance variables (used in profile generation)
         CubicHermiteSpline* path;
+        std::vector<double> headings;
+        std::vector<double> headingTs;
+        bool isHolo;
 
 
 };
@@ -141,7 +159,7 @@ class VelocityController {
     public:
         double linVel;
         double angVel;
-        VelocityController(PowerUnit output);
+        VelocityController(PowerUnit xOutput, PowerUnit yOutput, PowerUnit thetaOutput);
         void addAction(std::function<void(void)> action, double time);
         void clearActions(void);
         void startProfile(MotionProfile* profile, bool reverse = false, bool RAMSETE = true);
@@ -153,7 +171,9 @@ class VelocityController {
         void followProfile(MotionProfile* profile, bool reverse, bool RAMSETE);
         
         double timeToRun;
-        PowerUnit output;
+        PowerUnit xOutput;
+        PowerUnit yOutput;
+        PowerUnit thetaOutput;
         std::vector<double> actionTs;
         std::vector<std::function<void(void)>> actions;
         std::vector<bool> actionCompleteds;

@@ -37,6 +37,8 @@ void PIDController::movement(
     // PID Calculation Variables
     // General Variables
     double power = 0;
+    
+    if (reverse) {setPoint *= -1;}
 
     std::vector<bool> customsCompleted(customs.size(), false);
     bool actionCompleted = false;

@@ -101,6 +101,28 @@
         }
     );
 
+    double distFromLastReset = 0;
+    double lastHeading = 0;
+    TrackingSensor PIDHeadingTracker(
+        []() -> double {
+            double changeInHeading = getAggregatedHeading(Kalman1, Kalman2) - lastHeading;
+            if (changeInHeading > 315) {
+                changeInHeading -= 360;
+            } else if (changeInHeading < -315) {
+                changeInHeading += 360;
+            }
+            distFromLastReset += changeInHeading;
+            return distFromLastReset;
+        },
+        [](double val) {
+            return;
+        },
+        []() {
+            distFromLastReset = 0;
+            return;
+        }
+    );
+
     PowerUnit xPower(
         [](double power) {
             chassis.setX(power);
@@ -141,9 +163,9 @@
     double yTol = 0;
     double thetaTol = 0;
 
-    PIDController xPID(fbOdom, xConstants, xPower, xTol);
-    PIDController yPID(lrOdom, yConstants, yPower, yTol);
-    PIDController thetaPID(headingTracker, thetaConstants, thetaPower, thetaTol);
+    PIDController xPID(fbOdom, xConstants, chassis.m_xOutputCorrect, xTol);
+    PIDController yPID(lrOdom, yConstants, chassis.m_yOutputCorrect, yTol);
+    PIDController thetaPID(headingTracker, thetaConstants, chassis.m_thetaOutputCorrect, thetaTol);
     
 
 

@@ -4,6 +4,29 @@ MotionProfile::MotionProfile(CubicHermiteSpline* path, double maxSpeed, std::vec
     // assigns the passed-in values to instance variables
     this->path = path;
     this->maxSpeed = maxSpeed;
+    this->isHolo = false;
+    // default velocity zoning
+    // (0-10% goes from x0.1-1, 10-90% remains at x1, 90-100% goes from x1-0)
+    this->zones = {
+        {0, 0.1, {9, 0.1}},
+        {0.1, 0.9, {0, 1}},
+        {0.9, 1, {-10, 10}}
+    };
+    // custom velocity zoning
+    if (zonePoints.size() > 0) {
+        this->constructWithCustomZones(zonePoints);
+    }
+    // ends by creating the profile
+    this->generateVelocities();
+}
+
+MotionProfile::MotionProfile(CubicHermiteSpline* path, double maxSpeed, std::vector<double> headings, std::vector<double> headingTs, std::vector<std::vector<Point>> zonePoints) {
+    // assigns the passed-in values to instance variables
+    this->path = path;
+    this->maxSpeed = maxSpeed;
+    this->headings = headings;
+    this->headingTs = headingTs;
+    this->isHolo = true;
     // default velocity zoning
     // (0-10% goes from x0.1-1, 10-90% remains at x1, 90-100% goes from x1-0)
     this->zones = {
@@ -62,6 +85,18 @@ void MotionProfile::constructWithCustomZones(std::vector<std::vector<Point>> zon
     return;
 }
 
+double MotionProfile::customHeading(double t) {
+    int loc = 0;
+    for (int i = 0; i < this->headingTs.size(); i++) {
+        if (this->headingTs[i] > t) {
+            loc = i;
+            break;
+        }
+    }
+    double newHeading = this->headings[loc - 1] + ((this->headings[loc] - this->headings[loc - 1]) * ((t - this->headingTs[loc - 1]) / (this->headingTs[loc] - this->headingTs[loc - 1])));
+    return newHeading;
+}
+
 void MotionProfile::generateVelocities() {
     Pose currentPoint = this->path->findPose(0, 0.0001);
     double currentT = 0;
@@ -70,6 +105,13 @@ void MotionProfile::generateVelocities() {
     while (true) {
 
         currentPoint = this->path->findPose(currentT, 0.0001);
+
+        double newHeading = 0;
+        Pose nextPoint = {};
+        if (this->isHolo) {
+            newHeading = this->customHeading(currentT);
+            nextPoint = this->path->findPose(currentT + 0.0001, 0.0001);
+        }
 
         Zone assignedZone = {NAN, NAN, {NAN, NAN}};
 
@@ -98,6 +140,9 @@ void MotionProfile::generateVelocities() {
         
         // adds the new velocities and point as the next profile point
         profile.push_back({currentPoint.x, currentPoint.y, currentPoint.heading, linearVelocity, angularVelocity, currentT});
+        if (isHolo) {
+            holoProfile.push_back({currentPoint.x, currentPoint.y, newHeading, {nextPoint.x - currentPoint.x, nextPoint.y - currentPoint.y, linearVelocity, (std::atan2(nextPoint.y - currentPoint.y, nextPoint.x - currentPoint.x))}, 0});
+        }
 /*
         // redefines the current point to the next point for the next loop
         currentPoint.x = currentPoint.x + ((linearVelocity * 0.005) * std::cos(fixAngle(currentPoint.heading) * (M_PI / 180)));
@@ -123,11 +168,26 @@ void MotionProfile::generateVelocities() {
 
 // given a value of t on the profile, finds the profile's closest generated point
 MPPoint MotionProfile::findNearestPoint(double givenT) {
+    if (this->isHolo) {return {};}
     MPPoint closestCandidate;
     double closestDifference = 10000;
     for (int i = 0; i < profile.size(); i++) {
         if (std::abs(givenT - this->profile[i].t) < closestDifference) {
             closestCandidate = this->profile[i];
+            closestDifference = std::abs(givenT - this->profile[i].t);
+        }
+    }
+    return closestCandidate;
+}
+
+// given a value of t on the profile, finds the profile's closest generated point
+HoloMPPoint MotionProfile::findNearestHoloPoint(double givenT) {
+    if (!this->isHolo) {return {};}
+    HoloMPPoint closestCandidate;
+    double closestDifference = 10000;
+    for (int i = 0; i < holoProfile.size(); i++) {
+        if (std::abs(givenT - this->holoProfile[i].t) < closestDifference) {
+            closestCandidate = this->holoProfile[i];
             closestDifference = std::abs(givenT - this->profile[i].t);
         }
     }
