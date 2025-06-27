@@ -1,9 +1,8 @@
-#ifndef _PIDH_
-#define _PIDH_
+#ifndef _PID_H_
+#define _PID_H_
 
 #include "profiling.h"
-#include "tracking-inl.h"
-#include "power-inl.h"
+#include "proxy.h"
 #include "main.h"
 
 class PIDController {
@@ -22,8 +21,8 @@ class PIDController {
             bool reverse = false, // defaults to false- explicitly set to true to reverse the robot
             bool enableGoalModification = false, // defaults to false- explicitly set to true to make controller run as task and enable continuous modification to set point
         
-            std::vector<std::function<void(void)>> customs, // a lambda function that will execute during the PID (optional)
-            std::vector<double> executeAts // the distance point (in inches) that you want to trigger the custom lambda function at (optional)
+            std::vector<std::function<void(void)>> customs = {}, // a lambda function that will execute during the PID (optional)
+            std::vector<double> executeAts = {} // the distance point (in inches) that you want to trigger the custom lambda function at (optional)
         );
 
         void modMovement(

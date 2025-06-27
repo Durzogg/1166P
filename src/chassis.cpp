@@ -1,6 +1,6 @@
 #include "chassis.h"
 
-HoloChassis::HoloChassis(std::vector<pros::Motor> FL, std::vector<pros::Motor> FR, std::vector<pros::Motor> BL, std::vector<pros::Motor> BR) {
+HoloChassis::HoloChassis(std::vector<pros::Motor*> FL, std::vector<pros::Motor*> FR, std::vector<pros::Motor*> BL, std::vector<pros::Motor*> BR) {
     m_FL = FL;
     m_FR = FR;
     m_BL = BL;
@@ -29,16 +29,16 @@ HoloChassis::~HoloChassis() {
 
 void HoloChassis::move() {
     for (int i = 0; i < m_FL.size(); i++) {
-        m_FL[i].move((m_yPower + m_xPower) + m_thetaPower);
+        m_FL[i]->move((m_yPower + m_xPower) + m_thetaPower);
     }
     for (int i = 0; i < m_FR.size(); i++) {
-        m_FR[i].move((m_yPower - m_xPower) - m_thetaPower);
+        m_FR[i]->move((m_yPower - m_xPower) - m_thetaPower);
     }
     for (int i = 0; i < m_BL.size(); i++) {
-        m_BL[i].move((m_yPower - m_xPower) + m_thetaPower);
+        m_BL[i]->move((m_yPower - m_xPower) + m_thetaPower);
     }
     for (int i = 0; i < m_BR.size(); i++) {
-        m_BR[i].move((m_yPower + m_xPower) - m_thetaPower);
+        m_BR[i]->move((m_yPower + m_xPower) - m_thetaPower);
     }
 }
 
@@ -55,27 +55,39 @@ void HoloChassis::driverControl(pros::Controller controller, double dz) {
     }
 }
 
+void HoloChassis::setX(double power) {
+    m_xPower = power;
+}
+
+void HoloChassis::setY(double power) {
+    m_yPower = power;
+}
+
+void HoloChassis::setTheta(double power) {
+    m_thetaPower = power;
+}
+
 void HoloChassis::brakeMode(pros::MotorBrake type) {
     for (int i = 0; i < m_FL.size(); i++) {
-        m_FL[i].set_brake_mode(type);
+        m_FL[i]->set_brake_mode(type);
     }
     for (int i = 0; i < m_FR.size(); i++) {
-        m_FR[i].set_brake_mode(type);
+        m_FR[i]->set_brake_mode(type);
     }
     for (int i = 0; i < m_BL.size(); i++) {
-        m_BL[i].set_brake_mode(type);
+        m_BL[i]->set_brake_mode(type);
     }
     for (int i = 0; i < m_BR.size(); i++) {
-        m_BR[i].set_brake_mode(type);
+        m_BR[i]->set_brake_mode(type);
     }
 }
 
-void HoloChassis::continuousPower() {
+void HoloChassis::continuousPower(void) {
     bool hasNotStarted = chassisLock.try_lock();
     if (hasNotStarted) {
         chassisTask = new pros::Task([this](){
                 while (true) {
-                this->driverControl(master, 15);
+                this->move();
                 pros::delay(5);
             }
         });

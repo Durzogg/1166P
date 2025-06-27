@@ -1,5 +1,8 @@
+#ifndef _KALMAN_H_
+#define _KALMAN_H_
+
 #include "main.h"
-#include "tracking-inl.h"
+#include "proxy.h"
 
 class KalmanFilter {
     private:
@@ -33,3 +36,5 @@ class KalmanFilter {
         void startFilter(void);
         void endFilter(void);
 };
+
+#endif

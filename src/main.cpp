@@ -62,15 +62,6 @@ void opcontrol() {
 
 	master.rumble("-.-");
 
-	// Differential drive variables
-	int drvfb;
-	int drvlr;
-	int drvtrdz = 10;
-
-	// X-drive variables
-	int xLoc;
-	int yLoc;
-	int rotXLoc;
 	int deadzone = 15;
 
 	while (true) {

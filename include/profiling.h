@@ -2,6 +2,7 @@
 #define _PROFILINGH_
 
 #include <vector>
+#include <functional>
 
 struct Point {
     double x;
@@ -140,8 +141,7 @@ class VelocityController {
     public:
         double linVel;
         double angVel;
-        std::vector<double> FINDME;
-        VelocityController(std::vector<std::function<void(void)>> actions = {}, std::vector<double> actionTs = {});
+        VelocityController(PowerUnit output);
         void addAction(std::function<void(void)> action, double time);
         void clearActions(void);
         void startProfile(MotionProfile* profile, bool reverse = false, bool RAMSETE = true);
@@ -153,6 +153,7 @@ class VelocityController {
         void followProfile(MotionProfile* profile, bool reverse, bool RAMSETE);
         
         double timeToRun;
+        PowerUnit output;
         std::vector<double> actionTs;
         std::vector<std::function<void(void)>> actions;
         std::vector<bool> actionCompleteds;

@@ -1,9 +1,14 @@
-#include "config.h"
+#include "main.h"
 
-VelocityController::VelocityController(std::vector<std::function<void(void)>> actions, std::vector<double> actionTs) {
-    //this->actions = {[](){master.rumble(".");pros::lcd::print(0, "0.25");}, [](){master.rumble(".");pros::lcd::print(1, "0,5");intake.move(128);}, [](){master.rumble(".");pros::lcd::print(2, "0.9");}};
-    this->actions = actions;
-    this->actionTs = actionTs;
+    // Global Values
+    double g_gearRatio6 = 0.8;
+    double g_gearRatio2 = 3;
+    double g_maxRPM = 480;
+    double g_diameter = 4;
+    double g_distBetweenWheels = 7.5;
+
+VelocityController::VelocityController(PowerUnit output) {
+    this->output = output;
 }
 
 // uses the kinematic equations of a differential chassis and unit conversions to convert a linear and angular velocity to something that can be used
@@ -86,19 +91,15 @@ void VelocityController::followProfile(MotionProfile* currentlyFollowing, bool R
 
         // calculates the current point as the nearest point to the current step
         currentPoint = currentlyFollowing->findNearestPoint(currentStep);
-        //std::cout << currentPoint.t << "\n";
-
-        // std::cout << "x = " << currentPoint.x << ", y = " << currentPoint.y << ", h = " << currentPoint.heading << ", lv = " << currentPoint.linVel << ", av = " << currentPoint.angVel << ", t = " << currentPoint.t << "\n";
 
         // sets linear and angular velocities to that of the current point - these are changed by RAMSETE if it is on
         double linVel = currentPoint.linVel;
         double angVel = currentPoint.angVel;
 
-        // std::cout << "lv = " << linVel << ", rv = " << angVel << "\n";
-
         // calculation of output of each side with error corrections from RAMSETE
         if (RAMSETE) {
-            Pose location = {universalCurrentLocation.x * 0.0254, universalCurrentLocation.y * 0.0254, universalCurrentLocation.heading};
+            // Pose location = {universalCurrentLocation.x * 0.0254, universalCurrentLocation.y * 0.0254, universalCurrentLocation.heading};
+            Pose location = {0, 0, 0};
             nextPoint = currentlyFollowing->findNearestPoint(currentStep + step);
             nextPoint = {nextPoint.x * 0.0254, nextPoint.y * 0.0254, nextPoint.heading};
 
@@ -115,17 +116,12 @@ void VelocityController::followProfile(MotionProfile* currentlyFollowing, bool R
             double fixedOdomAngle = fixAngle(location.heading) * (M_PI / 180);
             double fixedNextAngle = fixAngle(nextPoint.heading) * (M_PI / 180);
 
-
-
-        //textToWrite.push_back("odom = " + std::to_string(location.heading) + ", fodom = " + std::to_string(fixedOdomAngle) + "\n");
-        //textToWrite.push_back("next = " + std::to_string(nextPoint.heading) + ", fnext = " + std::to_string(fixedNextAngle) + "\n\n");
         // rotation of the x, y, and heading errors to fit the local frame
             Pose error;
             error.x = (std::cos(fixedOdomAngle) * (nextPoint.x - location.x)) + (std::sin(fixedOdomAngle) * (nextPoint.y - location.y));
             if (reverse) {error.x *= -1;}
             error.y = (std::cos(fixedOdomAngle) * (nextPoint.y - location.y)) - (std::sin(fixedOdomAngle) * (nextPoint.x - location.x));
             error.heading = fixedNextAngle - fixedOdomAngle;
-            // std::cout << error.heading << "\n";
 
             linVel *= 0.0254;
 
@@ -135,9 +131,6 @@ void VelocityController::followProfile(MotionProfile* currentlyFollowing, bool R
             } else if (error.heading > M_PI) {
                 error.heading = (2 * M_PI) - error.heading;
             }
-
-            //std::cout << "prp = " << fixedNextAngle << ", ap = " << fixedOdomAngle << ", c = " << error.heading << "\n";
-            //std::cout << "ucl = " << location.heading << ", actual = " << getAggregatedHeading(Kalman1, Kalman2) << ", used = " << fixedOdomAngle << "\n";
 
         // tuning constants (current values are from the widely accepted defaults from FTCLib)
             double b = 2.0; // this is a proportional gain for each of the different error elements of the controller (put into the gain value calculations)
@@ -170,7 +163,8 @@ void VelocityController::followProfile(MotionProfile* currentlyFollowing, bool R
         }
 
         // standard calculation of output of each side based on specifications of the motion profile
-        velocitiesRPM = this->calculateOutputOfSides(linVel, angVel, currentlyFollowing->maxSpeed);
+        //velocitiesRPM = this->calculateOutputOfSides(linVel, angVel, currentlyFollowing->maxSpeed);
+        velocitiesRPM = {0, 0};
 
         // executes custom actions if the profile has reached or passed their t-point and have not yet been activated
         for (int i = 0; i < actions.size(); i++) {
@@ -186,25 +180,11 @@ void VelocityController::followProfile(MotionProfile* currentlyFollowing, bool R
 
         // sends the output voltage to the motors
         if (reverse && !RAMSETE) {
-            topLeft6.move_voltage(-velocitiesRPM[0] * rpmToV);
-            topRight6.move_voltage(-velocitiesRPM[1] * rpmToV);
-            bottomLeft6.move_voltage(-velocitiesRPM[2] * rpmToV);
-            bottomRight6.move_voltage(-velocitiesRPM[3] * rpmToV);
 
-            topLeft2.move_voltage((-velocitiesRPM[0] / g_gearRatio2) * rpmToV);
-            topRight2.move_voltage((-velocitiesRPM[1] / g_gearRatio2) * rpmToV);
-            bottomLeft2.move_voltage((-velocitiesRPM[0] / g_gearRatio2) * rpmToV);
-            bottomRight2.move_voltage((-velocitiesRPM[1] / g_gearRatio2) * rpmToV);
+
+
         } else {
-            topLeft6.move_voltage(velocitiesRPM[0] * rpmToV);
-            topRight6.move_voltage(velocitiesRPM[1] * rpmToV);
-            bottomLeft6.move_voltage(velocitiesRPM[2] * rpmToV);
-            bottomRight6.move_voltage(velocitiesRPM[3] * rpmToV);
 
-            topLeft2.move_voltage((velocitiesRPM[0] / g_gearRatio2) * rpmToV);
-            topRight2.move_voltage((velocitiesRPM[1] / g_gearRatio2) * rpmToV);
-            bottomLeft2.move_voltage((velocitiesRPM[0] / g_gearRatio2) * rpmToV);
-            bottomRight2.move_voltage((velocitiesRPM[1] / g_gearRatio2) * rpmToV);
         }
 
         // 5 ms delay (- the time taken to calculate)
@@ -214,8 +194,7 @@ void VelocityController::followProfile(MotionProfile* currentlyFollowing, bool R
         // then the drivetrain is stopped and the function ends
         if (currentPoint.t == currentlyFollowing->profile[currentlyFollowing->profile.size() - 1].t) {
             if (currentlyFollowing->zones[currentlyFollowing->zones.size() - 1].zoneLine.slope + currentlyFollowing->zones[currentlyFollowing->zones.size() - 1].zoneLine.yIntercept == 0) {
-                all6.brake();
-                all2.brake();
+
             }
             //std::cout << (pros::millis() - startTime) / (double) 1000 << "\n";
             //std::cout << currentlyFollowing->totalTime << "\n";

@@ -3,11 +3,11 @@
 
 #include <vector>
 #include "main.h"
-#include "power-inl.h"
+#include "proxy.h"
 
 class HoloChassis {
     public:
-        HoloChassis(std::vector<pros::Motor> FL, std::vector<pros::Motor> FR, std::vector<pros::Motor> BL, std::vector<pros::Motor> BR);
+        HoloChassis(std::vector<pros::Motor*> FL, std::vector<pros::Motor*> FR, std::vector<pros::Motor*> BL, std::vector<pros::Motor*> BR);
         ~HoloChassis();
 
         void move(void);
@@ -15,11 +15,15 @@ class HoloChassis {
         void driverControl(pros::Controller controller, double dz);
         void continuousPower(void);
 
+        void setX(double power);
+        void setY(double power);
+        void setTheta(double power);
+
     private:
-        std::vector<pros::Motor> m_FL;
-        std::vector<pros::Motor> m_FR;
-        std::vector<pros::Motor> m_BL;
-        std::vector<pros::Motor> m_BR;
+        std::vector<pros::Motor*> m_FL;
+        std::vector<pros::Motor*> m_FR;
+        std::vector<pros::Motor*> m_BL;
+        std::vector<pros::Motor*> m_BR;
 
         PowerUnit m_xOutput;
         double m_xPower;

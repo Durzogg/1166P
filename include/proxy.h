@@ -1,3 +1,7 @@
+
+#ifndef _TRACKING_H_
+#define _TRACKING_H_
+
 #include <functional>
 
 // declaration
@@ -16,21 +20,19 @@ class TrackingSensor {
 
 };
 
-// implementation
-TrackingSensor::TrackingSensor(std::function<double(void)> getValue, std::function<void(double val)> setValue, std::function<void(void)> reset) {
-    m_getValue = getValue;
-    m_setValue = setValue;
-    m_reset = reset;
-}
+class PowerUnit {
+    public:
+        PowerUnit(std::function<void(double val)> move, std::function<void(void)> stop);
+        PowerUnit() = default;
 
-double TrackingSensor::get() {
-    return m_getValue();
-}
+        void move(double val);
+        void stop(void);
 
-void TrackingSensor::set(double val) {
-    return m_setValue(val);
-}
+    private:
+        std::function<void(double)> m_move;
+        std::function<void(void)> m_stop;
 
-void TrackingSensor::reset(void) {
-    return m_reset();
-}
+};
+
+
+#endif

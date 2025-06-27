@@ -1,3 +1,5 @@
+/*
+
 #include "config.h"
 #include "power-inl.h"
 #include "chassis.h"
@@ -44,4 +46,4 @@
     double g_maxRPM = 480;
     double g_diameter = 4;
     
-        
+*/

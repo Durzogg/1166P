@@ -1,5 +1,5 @@
-#include "config.h"
-
+//#include "config.h"
+/*
 void PIDMover(
 		Point goalPosition, // goal coordinate position
 		bool reverse, // defaults to false- explicitly set to true to reverse the robot
@@ -67,7 +67,7 @@ void PIDMover(
 	if ((power > 0 && cycle.power < 0) || (power < 0 && cycle.power > 0)) {
 		cyclesFlipping++;
 	}
-*/
+DANE BRGOCH
 	power = cycle.power;
 
 	// finds if the robot has passed the perpendicular line's inequality or not
@@ -153,7 +153,7 @@ void PIDMover(
 				actionCompleted = true;
 				AllWheels.brake();
 		   }
-		*/
+		DANE BRGOCH
 		
 	}
 
@@ -238,7 +238,7 @@ void PIDTurner(
 	double centralAngleOfArc = distanceToMove; // the central angle is the previously-calculated angle for the robot to move
 	double arcLength = centralAngleOfArc * radius; // arc length formula (angle in radians * radius)
 	distanceToMove = arcLength; // sets distanceToMove to the length of the arc instead of the angle, as this will make for better calculations of speed
-*/
+DANE BRGOCH
 
 
 	// constant definitions
@@ -333,7 +333,7 @@ void PIDTurner(
 		double changeInCentralAngleOfArc = changeInReading;
 		double arcDistanceMoved = radius * changeInCentralAngleOfArc;
 		changeInReading = arcDistanceMoved;
-*/
+DANE BRGOCH
 
 		if (((changeInReading <= (distanceToMove + tolerance)) && (changeInReading >= (distanceToMove - tolerance)))) {
 				if (cyclesAtGoal >= 30) {
@@ -650,7 +650,7 @@ PIDReturn PIDCalc(
 		/* if (((isPositive) && (error >= 100)) || ((!isPositive) && (error <= -100))) {
 			integral = 0;
 			}
-		*/
+		DANE BRGOCH
 		if ((integral > 100) || (integral < -100)) {
 			integral = integral > 100
 				? 100
@@ -685,3 +685,4 @@ PIDReturn PIDCalc(
 	// returns a PIDReturn structure
 		return thisCycle;
 }
+*/

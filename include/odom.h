@@ -2,7 +2,7 @@
 #define _ODOM_H_
 
 #include "main.h"
-#include "tracking-inl.h"
+#include "proxy.h"
 
 class OdomPod {
     public:
