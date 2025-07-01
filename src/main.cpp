@@ -42,7 +42,13 @@ void competition_initialize() {
  * from where it left off.
  */
 void autonomous() {
+	chassis.continuousPower();
+	std::cout << "reached xPID.movement\n";
+	thetaPIDSub90.movement(90);
 
+	while (true) {
+		pros::delay(30);
+	}
 }
 
 /**
@@ -59,7 +65,7 @@ void autonomous() {
  * task, not resume it from where it left off.
  */
 void opcontrol() {
-
+	autonomous();
 	master.rumble("-.-");
 
 	int deadzone = 15;
@@ -85,17 +91,38 @@ void opcontrol() {
 		chassis.move();
 
 
-	// Input Control
+	// Intake Control
+	// Long Goal
 	if (master.get_digital(pros::E_CONTROLLER_DIGITAL_R2)) {
-		inputLeft.move(128);
-		inputRight.move(-128);
-	} else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_R1)) {
-		inputLeft.move(-128);
-		inputRight.move(128);
-	} else {
-		inputLeft.brake();
-		inputRight.brake();
+		input.move(128);
+		storage.move(-128);
+		output.move(-128);
+	} 
+	// High Center Goal
+	else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_R1)) {
+		input.move(128);
+		storage.move(-128);
+		output.move(128);
+	} 
+	// Storage
+	else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_L2)) {
+		input.move(128);
+		storage.move(128);
+		output.brake();
 	}
+	// Low Center Goal
+	else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_L1)) {
+		input.move(-128);
+		storage.move(128);
+		output.brake();
+	}
+	else {
+		input.brake();
+		storage.brake();
+		output.brake();
+	}
+
+	
 
 	pros::delay(20);
 	}

@@ -28,6 +28,10 @@ class PIDController {
         void modMovement(
             double setPoint
         );
+
+        void stopMovement(void);
+
+
     
     
     private:

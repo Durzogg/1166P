@@ -31,8 +31,9 @@ void PIDController::movement(
         movementLock.unlock();
         m_movementTask = new pros::Task([this, setPoint, reverse, customs, executeAts](){this->movement(setPoint, reverse, false, customs, executeAts);});
     }
-
     m_sensor.reset();
+
+    std::cout << "hif\n";
 
     // PID Calculation Variables
     // General Variables
@@ -104,9 +105,11 @@ void PIDController::movement(
         remainingDistance = setPoint - currentDistanceMovedByWheel;
 
         // checks to see if the robot has completed the movement by checking if it is within a range of the perpendicular line of its goal point
-        if (remainingDistance <= 0 + m_tolerance) {
+        if ((remainingDistance <= 0 + m_tolerance) &&
+           (remainingDistance >= 0 - m_tolerance)) {
             actionCompleted = true;
             m_output.stop();
+            std::cout << "Job done";
         }
         
 }
@@ -116,6 +119,12 @@ void PIDController::movement(
 void PIDController::modMovement(double setPoint) {
     m_setPointMod = setPoint;
     m_modFresh = true;
+}
+
+void PIDController::stopMovement(void) {
+    if (m_movementTask != NULL) {
+        m_movementTask->remove();
+    }
 }
 
 double PIDController::calculateOutput(

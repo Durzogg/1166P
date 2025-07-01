@@ -28,16 +28,17 @@
         pros::Motor bottomRight2(4, pros::v5::MotorGears::green, pros::v5::MotorEncoderUnits::degrees);
         
     // Intake
-        pros::Motor inputLeft(11, pros::v5::MotorGears::green, pros::v5::MotorEncoderUnits::degrees);
-        pros::Motor inputRight(5, pros::v5::MotorGears::green, pros::v5::MotorEncoderUnits::degrees);
+        pros::Motor input(18, pros::v5::MotorGears::green, pros::v5::MotorEncoderUnits::degrees);
+        pros::Motor storage(17, pros::v5::MotorGears::green, pros::v5::MotorEncoderUnits::degrees);
+        pros::Motor output(19, pros::v5::MotorGears::green, pros::v5::MotorEncoderUnits::degrees);
 
     // Sensors
-        pros::Rotation parallelLeftOdom(99);
-        pros::Rotation parallelRightOdom(99);
-        pros::Rotation perpOdom(99);
+        pros::Rotation parallelLeftOdom(12);
+        pros::Rotation parallelRightOdom(13);
+        pros::Rotation perpOdom(11);
 
-        pros::IMU inertial1(99);
-        pros::IMU inertial2(99);
+        pros::IMU inertial1(14);
+        pros::IMU inertial2(15);
 
 // Program Module Initialization
 
@@ -47,9 +48,11 @@
     OdomPod rightOdom(&parallelRightOdom, 2);
     TrackingSensor fbOdom(
         []() -> double {
+            std::cout << "got value from odom\n";
             return ((leftOdom.measure() + rightOdom.measure()) / 2);
         },
         [](double val) {
+            std::cout << "reached odom reset\n";
             parallelLeftOdom.set_position(val);
             parallelRightOdom.set_position(val);
             return;
@@ -152,20 +155,30 @@
 
     Pose startPose = {0, 0, 0};
 
-    Odometry odom(fbOdom, headingTracker, {0, 0, 0}, lrOdom);
-    ;
+    /* Odometry odom(fbOdom, headingTracker, startPose, lrOdom);
+    odom.updateLoop();
 
-    ConstantContainer xConstants = {0, 0, 0};
-    ConstantContainer yConstants = {0, 0, 0};
-    ConstantContainer thetaConstants = {0, 0, 0};
+    double distSinceLastReset = 0;
+    TrackingSensor xOdom(
+        [](){
+            return odom.m_robotPose.
+        }
+    ); */
 
-    double xTol = 0;
-    double yTol = 0;
-    double thetaTol = 0;
+    ConstantContainer xConstants = {4, 0.1, 2.7};
+    ConstantContainer yConstants = {4, 0.1, 2.7};
+    ConstantContainer thetaConstantsSub90 = {3, 0.2, 26};
+    ConstantContainer thetaConstantsAbove90 = {2.3, 0.24, 32};
+
+    double xTol = 1;
+    double yTol = 1;
+    double thetaTolSub90 = 2.5;
+    double thetaTolAbove90 = 3.5;
 
     PIDController xPID(fbOdom, xConstants, chassis.m_xOutputCorrect, xTol);
     PIDController yPID(lrOdom, yConstants, chassis.m_yOutputCorrect, yTol);
-    PIDController thetaPID(headingTracker, thetaConstants, chassis.m_thetaOutputCorrect, thetaTol);
+    PIDController thetaPIDSub90(headingTracker, thetaConstantsSub90, chassis.m_thetaOutputCorrect, thetaTolSub90);
+    PIDController thetaPIDAbove90(headingTracker, thetaConstantsAbove90, chassis.m_thetaOutputCorrect, thetaTolAbove90);
     
 
 

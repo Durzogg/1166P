@@ -32,11 +32,11 @@ class Odometry {
         );
         Point update(double heading, double moved);
         void updateLoop();
+        Pose m_robotPose;
     
     private:
         void holoUpdateLoop();
 
-        Pose m_robotPose;
         bool m_taskRunning;
         bool m_isHolo;
         bool m_isSide;
