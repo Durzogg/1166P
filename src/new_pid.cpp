@@ -16,8 +16,7 @@ PIDController::~PIDController() {
 
 void PIDController::movement(
     double setPoint, // goal coordinate position
-    bool reverse, // defaults to false- explicitly set to true to reverse the robot
-    bool blocking, // defaults to true- explicitly set to true to make controller run as task
+    bool nonblocking, // defaults to false- explicitly set to true to make controller run as task
 
     std::vector<std::function<void(void)>> customs, // a lambda function that will execute during the PID (optional)
     std::vector<double> executeAts // the distance point (in inches) that you want to trigger the custom lambda function at (optional)
@@ -27,9 +26,10 @@ void PIDController::movement(
     if (!canRun) {
         return;
     }
-    if (blocking) {
+    if (nonblocking) {
         movementLock.unlock();
-        m_movementTask = new pros::Task([this, setPoint, reverse, customs, executeAts](){this->movement(setPoint, reverse, false, customs, executeAts);});
+        m_movementTask = new pros::Task([this, setPoint, customs, executeAts](){this->movement(setPoint, false, customs, executeAts);});
+        return;
     }
     m_sensor.reset();
 
@@ -38,8 +38,6 @@ void PIDController::movement(
     // PID Calculation Variables
     // General Variables
     double power = 0;
-    
-    if (reverse) {setPoint *= -1;}
 
     std::vector<bool> customsCompleted(customs.size(), false);
     bool actionCompleted = false;
@@ -63,13 +61,9 @@ void PIDController::movement(
         power = this->calculateOutput(currentDistanceMovedByWheel, setPoint);
 
         // reverses the direction if the robot has passed the set point
-        if (std::abs(currentDistanceMovedByWheel) > std::abs(setPoint)) {
+        /* if (std::abs(currentDistanceMovedByWheel) > std::abs(setPoint)) {
             power *= -1;
-        }
-        // reverses the direction if the robot has been commanded to move in reverse
-        if (reverse) {
-            power *= -1;
-        }
+        } */
 
         // moves the wheels at the desired power, ending the cycle
         m_output.move(power);
@@ -109,7 +103,7 @@ void PIDController::movement(
            (remainingDistance >= 0 - m_tolerance)) {
             actionCompleted = true;
             m_output.stop();
-            std::cout << "Job done";
+            movementLock.unlock();
         }
         
 }
@@ -139,7 +133,7 @@ double PIDController::calculateOutput(
 		// kP (proportional constant) determines how fast we want to go overall while still keeping accuracy
 		double proportionalOut = error * m_constants.kP;
 
-
+        std::cout << "error: " << error << "\n";
 
 
 	// I: Integral -- starts slow and speeds up as time goes on to prevent undershooting
@@ -169,6 +163,8 @@ double PIDController::calculateOutput(
 		// adds integral to return structure for compounding
 		p_integral = integral;
 
+        std::cout << "integral: " << integralOut << "\n";
+
 
 
 	// D: Derivative -- slows the robot more and more as it goes faster
@@ -185,6 +181,8 @@ double PIDController::calculateOutput(
         // tracks the time of this check so that the next check will not overdo the derivative 
         // due to a large change over a large amount of time
         p_time = pros::millis();
+
+        std::cout << "derivative: " << derivativeOut << "\n\n";
 
 	// Adds the results of each of the calculations together to get the desired power
 		double power = proportionalOut + integralOut + derivativeOut;

@@ -7,7 +7,16 @@
  * to keep execution time for this mode under a few seconds.
  */
 void initialize() {
-
+	pros::delay(3000);
+    Kalman1.startFilter();
+    Kalman2.startFilter();
+	parallelLeftOdom.set_position(0);
+	parallelRightOdom.set_position(0);
+	perpOdom.set_position(0);
+	odom.updateLoop();
+	chassis.addPID(&xPID, &yPID);
+	master.print(0, 0, "done");
+	pros::delay(2000);
 }
 
 /**
@@ -43,12 +52,8 @@ void competition_initialize() {
  */
 void autonomous() {
 	chassis.continuousPower();
-	std::cout << "reached xPID.movement\n";
-	thetaPIDSub90.movement(90);
-
-	while (true) {
-		pros::delay(30);
-	}
+	chassis.brakeMode(pros::v5::MotorBrake::hold);
+	chassis.moveToPoint(odom.transformToLocal({0, 15}));
 }
 
 /**
@@ -65,27 +70,13 @@ void autonomous() {
  * task, not resume it from where it left off.
  */
 void opcontrol() {
+	pros::delay(3000);
 	autonomous();
 	master.rumble("-.-");
 
 	int deadzone = 15;
 
 	while (true) {
-	/*
-	// Differential Drivetrain Control 
-		drvfb = master.get_analog(ANALOG_LEFT_Y);
-		drvlr = master.get_analog(ANALOG_RIGHT_X);
-
-		if ((abs(drvfb) > drvtrdz) || (abs(drvlr) > drvtrdz)) {
-      		// ^^ Checks to see if either joystick has moved out of the deadzMasterone
-			rightDrivetrain.move((drvfb-(drvlr)));
-      		leftDrivetrain.move((drvfb+(drvlr)));	
-    	} else {
-			rightDrivetrain.brake();
-      		leftDrivetrain.brake();
-    	} 
-	*/
-
 	// Mecanum Drive Control
 		chassis.driverControl(master, deadzone);
 		chassis.move();

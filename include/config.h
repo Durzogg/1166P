@@ -6,7 +6,6 @@
 #include "proxy.h"
 #include "config.h"
 #include "odom.h"
-#include "chassis.h"
 #include "pid.h"
 
 // Controllers
@@ -46,13 +45,11 @@
 
     OdomPod leftOdom(&parallelLeftOdom, 2);
     OdomPod rightOdom(&parallelRightOdom, 2);
-    TrackingSensor fbOdom(
+    TrackingSensor fbTrack(
         []() -> double {
-            std::cout << "got value from odom\n";
             return ((leftOdom.measure() + rightOdom.measure()) / 2);
         },
         [](double val) {
-            std::cout << "reached odom reset\n";
             parallelLeftOdom.set_position(val);
             parallelRightOdom.set_position(val);
             return;
@@ -76,7 +73,7 @@
     );
 
     OdomPod perpendicularOdom = OdomPod(&perpOdom, 2);
-    TrackingSensor lrOdom(
+    TrackingSensor lrTrack(
         []() -> double {
             return perpendicularOdom.measure();
         },
@@ -90,8 +87,9 @@
         }
     );
 
-    KalmanFilter Kalman1(&inertial1, angVelTracker);
-    KalmanFilter Kalman2(&inertial2, angVelTracker);
+    KalmanFilter Kalman1 = KalmanFilter(&inertial1, angVelTracker);
+    KalmanFilter Kalman2 = KalmanFilter(&inertial2, angVelTracker);
+
     TrackingSensor headingTracker(
         []() -> double {
             return getAggregatedHeading(Kalman1, Kalman2);
@@ -115,6 +113,7 @@
                 changeInHeading += 360;
             }
             distFromLastReset += changeInHeading;
+            lastHeading = getAggregatedHeading(Kalman1, Kalman2);
             return distFromLastReset;
         },
         [](double val) {
@@ -126,44 +125,9 @@
         }
     );
 
-    PowerUnit xPower(
-        [](double power) {
-            chassis.setX(power);
-        },
-        []() {
-            chassis.setX(0);
-        }
-    );
-
-    PowerUnit yPower(
-        [](double power) {
-            chassis.setY(power);
-        },
-        []() {
-            chassis.setY(0);
-        }
-    );
-
-    PowerUnit thetaPower(
-        [](double power) {
-            chassis.setTheta(power);
-        },
-        []() {
-            chassis.setTheta(0);
-        }
-    );
-
     Pose startPose = {0, 0, 0};
 
-    /* Odometry odom(fbOdom, headingTracker, startPose, lrOdom);
-    odom.updateLoop();
-
-    double distSinceLastReset = 0;
-    TrackingSensor xOdom(
-        [](){
-            return odom.m_robotPose.
-        }
-    ); */
+    Odometry odom(fbTrack, headingTracker, startPose, lrTrack);
 
     ConstantContainer xConstants = {4, 0.1, 2.7};
     ConstantContainer yConstants = {4, 0.1, 2.7};
@@ -175,20 +139,9 @@
     double thetaTolSub90 = 2.5;
     double thetaTolAbove90 = 3.5;
 
-    PIDController xPID(fbOdom, xConstants, chassis.m_xOutputCorrect, xTol);
-    PIDController yPID(lrOdom, yConstants, chassis.m_yOutputCorrect, yTol);
-    PIDController thetaPIDSub90(headingTracker, thetaConstantsSub90, chassis.m_thetaOutputCorrect, thetaTolSub90);
-    PIDController thetaPIDAbove90(headingTracker, thetaConstantsAbove90, chassis.m_thetaOutputCorrect, thetaTolAbove90);
-    
-
-
-
-
-
-
-
-
-    
-
+    PIDController xPID(fbTrack, xConstants, chassis.m_xOutputCorrect, xTol);
+    PIDController yPID(lrTrack, yConstants, chassis.m_yOutputCorrect, yTol);
+    PIDController thetaPIDSub90(PIDHeadingTracker, thetaConstantsSub90, chassis.m_thetaOutputCorrect, thetaTolSub90);
+    PIDController thetaPIDAbove90(PIDHeadingTracker, thetaConstantsAbove90, chassis.m_thetaOutputCorrect, thetaTolAbove90);
 
 #endif

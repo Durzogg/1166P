@@ -32,6 +32,7 @@ class Odometry {
         );
         Point update(double heading, double moved);
         void updateLoop();
+        Point transformToLocal(Point globalPoint);
         Pose m_robotPose;
     
     private:

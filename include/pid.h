@@ -18,8 +18,7 @@ class PIDController {
 
         void movement(
             double setPoint, // goal coordinate position
-            bool reverse = false, // defaults to false- explicitly set to true to reverse the robot
-            bool enableGoalModification = false, // defaults to false- explicitly set to true to make controller run as task and enable continuous modification to set point
+            bool nonblocking = false, // defaults to false- explicitly set to true to make controller run as task and enable continuous modification to set point
         
             std::vector<std::function<void(void)>> customs = {}, // a lambda function that will execute during the PID (optional)
             std::vector<double> executeAts = {} // the distance point (in inches) that you want to trigger the custom lambda function at (optional)

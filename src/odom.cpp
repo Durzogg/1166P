@@ -19,7 +19,7 @@ double OdomPod::measure(void) {
     double singleDegree = calculateSingleDegree(m_diameter); // 2 is the pre-measured wheel diameter in inches (may need to be changed for precision)
 
     // gets the reading from the rotational sensor
-    int rawReading = m_odom->get_position() * -1; // gives centidegrees (a 0-36,000 scale)
+    int rawReading = m_odom->get_position(); // gives centidegrees (a 0-36,000 scale)
     double readingDeg = rawReading / 100; // reduces the centidegrees to degrees (a 0-360 scale)
     
     // converts the reading to centimeters
@@ -100,7 +100,7 @@ Odometry::Odometry(TrackingSensor movementSensor, // this sensor should track ho
     m_robotPose = startPosition;
 
     // resets the rotational sensor to zero
-    movementSensor.reset();
+    movementSensor.set(0);
 
     // sets the headings to the heading offset
     headingSensor.set(startPosition.heading);
@@ -254,4 +254,18 @@ void Odometry::holoUpdateLoop() {
             previousLocation = m_robotPose;
         }
     }
+}
+
+Point Odometry::transformToLocal(Point globalPoint) {
+    Point change;
+    change.x = globalPoint.x - m_robotPose.x;
+    change.y = globalPoint.y - m_robotPose.y;
+
+
+    double localX = (change.x * std::sin((M_PI / 180) * fixAngle(m_headingSensor.get()))) + (change.y * std::cos((M_PI / 180) * fixAngle(m_headingSensor.get())));
+    double localY = (change.x * std::cos((M_PI / 180) * fixAngle(m_headingSensor.get()))) + (change.y * std::sin((M_PI / 180) * fixAngle(m_headingSensor.get())));
+
+    std::cout << "{" << std::cos((M_PI / 180) * fixAngle(m_headingSensor.get())) << ", " << change.y << "}\n";
+
+    return {localX, localY};
 }

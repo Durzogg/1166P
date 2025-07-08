@@ -4,16 +4,22 @@
 #include <vector>
 #include "main.h"
 #include "proxy.h"
+#include "pid.h"
 
 class HoloChassis {
     public:
         HoloChassis(std::vector<pros::Motor*> FL, std::vector<pros::Motor*> FR, std::vector<pros::Motor*> BL, std::vector<pros::Motor*> BR);
+        HoloChassis(std::vector<pros::Motor*> FL, std::vector<pros::Motor*> FR, std::vector<pros::Motor*> BL, std::vector<pros::Motor*> BR,
+                    PIDController* xPID, PIDController* yPID);
+        void addPID(PIDController* xPID, PIDController* yPID);
         ~HoloChassis();
 
         void move(void);
+        void brake(void);
         void brakeMode(pros::MotorBrake type);
         void driverControl(pros::Controller controller, double dz);
         void continuousPower(void);
+        void moveToPoint(Point localPoint, bool nonblocking = false);
 
         void setX(double power);
         void setY(double power);
@@ -43,6 +49,10 @@ class HoloChassis {
 
         double m_thetaPower;
         double m_thetaCorrect;
+
+        PIDController* m_xPID;
+        PIDController* m_yPID;
+        bool m_hasPID;
 
         pros::Mutex chassisLock;
         pros::Task* chassisTask;
