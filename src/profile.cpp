@@ -1,4 +1,4 @@
-#include "main.h"
+#include "profiling.h"
 
 MotionProfile::MotionProfile(CubicHermiteSpline* path, double maxSpeed, std::vector<std::vector<Point>> zonePoints) {
     // assigns the passed-in values to instance variables
@@ -25,7 +25,9 @@ MotionProfile::MotionProfile(CubicHermiteSpline* path, double maxSpeed, std::vec
     this->path = path;
     this->maxSpeed = maxSpeed;
     this->headings = headings;
+    headings.insert(headings.begin(), 0);
     this->headingTs = headingTs;
+    headingTs.insert(headingTs.begin(), headingTs[0]);
     this->isHolo = true;
     // default velocity zoning
     // (0-10% goes from x0.1-1, 10-90% remains at x1, 90-100% goes from x1-0)
@@ -92,6 +94,7 @@ double MotionProfile::customHeading(double t) {
             loc = i;
             break;
         }
+        return this->headings[headings.size() - 1];
     }
     double newHeading = this->headings[loc - 1] + ((this->headings[loc] - this->headings[loc - 1]) * ((t - this->headingTs[loc - 1]) / (this->headingTs[loc] - this->headingTs[loc - 1])));
     return newHeading;
@@ -141,7 +144,7 @@ void MotionProfile::generateVelocities() {
         // adds the new velocities and point as the next profile point
         profile.push_back({currentPoint.x, currentPoint.y, currentPoint.heading, linearVelocity, angularVelocity, currentT});
         if (isHolo) {
-            holoProfile.push_back({currentPoint.x, currentPoint.y, newHeading, {nextPoint.x - currentPoint.x, nextPoint.y - currentPoint.y, linearVelocity, (std::atan2(nextPoint.y - currentPoint.y, nextPoint.x - currentPoint.x))}, 0});
+            holoProfile.push_back({currentPoint.x, currentPoint.y, newHeading, {nextPoint.x - currentPoint.x, nextPoint.y - currentPoint.y, linearVelocity, (std::atan2(nextPoint.y - currentPoint.y, nextPoint.x - currentPoint.x))}, 0, currentT});
         }
 /*
         // redefines the current point to the next point for the next loop

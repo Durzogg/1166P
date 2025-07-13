@@ -1,4 +1,3 @@
-#include "main.h"
 #include "kalman.h"
 
 double getAggregatedHeading(KalmanFilter inertial1, KalmanFilter inertial2) {

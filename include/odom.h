@@ -3,6 +3,7 @@
 
 #include "main.h"
 #include "proxy.h"
+#include "math.h"
 
 class OdomPod {
     public:
@@ -46,6 +47,15 @@ class Odometry {
         TrackingSensor m_movementSensor;
         TrackingSensor m_headingSensor;
         TrackingSensor m_sideSensor;
+};
+
+class PoseTracker {
+    public:
+        PoseTracker(Odometry* odom);
+        Pose get(void);
+
+    private:
+        Odometry* m_odom;
 };
 
 #endif

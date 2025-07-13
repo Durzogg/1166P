@@ -1,4 +1,4 @@
-#include "main.h"
+#include "math.h"
 
 double findHeadingOfLine(
     Point point1, // the initial point

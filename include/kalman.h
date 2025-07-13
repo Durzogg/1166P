@@ -3,6 +3,7 @@
 
 #include "main.h"
 #include "proxy.h"
+#include "math.h"
 
 class KalmanFilter {
     private:
@@ -36,5 +37,7 @@ class KalmanFilter {
         void startFilter(void);
         void endFilter(void);
 };
+
+double getAggregatedHeading(KalmanFilter inertial1, KalmanFilter inertial2);
 
 #endif

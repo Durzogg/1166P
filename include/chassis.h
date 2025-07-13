@@ -5,6 +5,7 @@
 #include "main.h"
 #include "proxy.h"
 #include "pid.h"
+#include "math.h"
 
 class HoloChassis {
     public:

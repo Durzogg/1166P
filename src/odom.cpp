@@ -269,3 +269,11 @@ Point Odometry::transformToLocal(Point globalPoint) {
 
     return {localX, localY};
 }
+
+PoseTracker::PoseTracker(Odometry* odom) {
+    m_odom = odom;
+}
+
+Pose PoseTracker::get() {
+    return m_odom->m_robotPose;
+}

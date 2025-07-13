@@ -133,7 +133,7 @@ double PIDController::calculateOutput(
 		// kP (proportional constant) determines how fast we want to go overall while still keeping accuracy
 		double proportionalOut = error * m_constants.kP;
 
-        std::cout << "error: " << error << "\n";
+//        std::cout << "error: " << error << "\n";
 
 
 	// I: Integral -- starts slow and speeds up as time goes on to prevent undershooting
@@ -163,7 +163,7 @@ double PIDController::calculateOutput(
 		// adds integral to return structure for compounding
 		p_integral = integral;
 
-        std::cout << "integral: " << integralOut << "\n";
+//        std::cout << "integral: " << integralOut << "\n";
 
 
 
@@ -182,7 +182,7 @@ double PIDController::calculateOutput(
         // due to a large change over a large amount of time
         p_time = pros::millis();
 
-        std::cout << "derivative: " << derivativeOut << "\n\n";
+//        std::cout << "derivative: " << derivativeOut << "\n\n";
 
 	// Adds the results of each of the calculations together to get the desired power
 		double power = proportionalOut + integralOut + derivativeOut;

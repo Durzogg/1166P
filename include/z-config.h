@@ -4,9 +4,11 @@
 #include "main.h"
 #include "chassis.h"
 #include "proxy.h"
-#include "config.h"
 #include "odom.h"
 #include "pid.h"
+#include "profiling.h"
+#include "kalman.h"
+#include "math.h"
 
 // Controllers
     pros::Controller master(pros::E_CONTROLLER_MASTER);
@@ -38,6 +40,9 @@
 
         pros::IMU inertial1(14);
         pros::IMU inertial2(15);
+
+    // Three-Wire Devices
+        pros::adi::DigitalOut unloader(8);
 
 // Program Module Initialization
 
@@ -143,5 +148,10 @@
     PIDController yPID(lrTrack, yConstants, chassis.m_yOutputCorrect, yTol);
     PIDController thetaPIDSub90(PIDHeadingTracker, thetaConstantsSub90, chassis.m_thetaOutputCorrect, thetaTolSub90);
     PIDController thetaPIDAbove90(PIDHeadingTracker, thetaConstantsAbove90, chassis.m_thetaOutputCorrect, thetaTolAbove90);
+
+    PIDSet robotPIDs(&xPID, &yPID, &thetaPIDSub90, &thetaPIDAbove90);
+    PoseTracker currentPose(&odom);
+
+    VelocityController follower(&chassis.m_xOutput, &chassis.m_yOutput, &chassis.m_thetaOutput, &currentPose, robotPIDs);
 
 #endif

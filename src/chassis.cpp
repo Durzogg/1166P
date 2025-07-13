@@ -25,7 +25,7 @@ HoloChassis::HoloChassis(std::vector<pros::Motor*> FL, std::vector<pros::Motor*>
         [this]() {m_xCorrect = 0;}
     );
     m_yOutputCorrect = PowerUnit(
-        [this](double power) {m_yCorrect = power; std::cout << "pow = " << power << "\n";},
+        [this](double power) {m_yCorrect = power;},
         [this]() {m_yCorrect = 0;}
     );
     m_thetaOutputCorrect = PowerUnit(
@@ -70,6 +70,9 @@ HoloChassis::~HoloChassis() {
 }
 
 void HoloChassis::move() {
+    m_xCorrect = 0;
+    m_yCorrect = 0;
+    m_thetaCorrect = 0;
     for (int i = 0; i < m_FL.size(); i++) {
         m_FL[i]->move(((m_xPower + m_xCorrect) + (m_yPower + m_yCorrect)) + (m_thetaPower + m_thetaCorrect));
     }

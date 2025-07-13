@@ -3,36 +3,19 @@
 
 #include <vector>
 #include <functional>
+#include <stdexcept>
+
+#include "main.h"
 #include "proxy.h"
-
-struct Point {
-    double x;
-    double y;
-};
-
-struct Pose {
-    double x;
-    double y;
-    double heading;
-};
+#include "odom.h"
+#include "pid.h"
+#include "math.h"
 
 struct UltraPose {
     double x;
     double y;
     double heading;
     double curvature;
-};
-
-struct Line {
-    double slope;
-    double yIntercept;
-};
-
-struct Vector {
-    double x;
-    double y;
-    double magnitude;
-    double angle;
 };
 
 struct MPPoint {
@@ -61,33 +44,17 @@ struct Zone {
     Line zoneLine; // line that represents the zone on the graph
 };
 
-struct HexicPolyData {
-    double P6;
-    double P5;
-    double P4;
-    double P3;
-    double P2;
-    double P1;
-    double P0;
-};
-
-struct CubicPolyData {
-    double a;
-    double b;
-    double c;
-    double d;
-};
-
-struct QuadraticPolyData {
-    double a;
-    double b;
-    double c;
-};
-
 enum Direction {
     LEFT = -1,
     STRAIGHT = 0,
     RIGHT = 1,
+};
+
+struct PIDSet {
+    PIDController* x;
+    PIDController* y;
+    PIDController* thetaL90;
+    PIDController* thetaG90;
 };
 
 class CubicHermiteSpline {
@@ -151,29 +118,32 @@ class MotionProfile {
         std::vector<double> headings;
         std::vector<double> headingTs;
         bool isHolo;
-
-
 };
 
 class VelocityController {
     public:
         double linVel;
         double angVel;
-        VelocityController(PowerUnit xOutput, PowerUnit yOutput, PowerUnit thetaOutput);
+        VelocityController(PowerUnit* xOutput, PowerUnit* yOutput, PowerUnit* thetaOutput, PoseTracker* globalPos, PIDSet corrector = {});
         void addAction(std::function<void(void)> action, double time);
         void clearActions(void);
-        void startProfile(MotionProfile* profile, bool reverse = false, bool RAMSETE = true);
+        void startProfile(MotionProfile* profile, bool correct = true);
 
 
     private:
         std::vector<double> calculateOutputOfSides(Vector linearVelocityIPS, double angularVelocityRADPS, double profileMaxIPS);
         double calculateSingleDegree(double wheelDiameter);
-        void followProfile(MotionProfile* profile, bool reverse, bool RAMSETE);
+        void followProfile(MotionProfile* profile, bool correct = true);
         
         double timeToRun;
-        PowerUnit xOutput;
-        PowerUnit yOutput;
-        PowerUnit thetaOutput;
+        PowerUnit* xOutput;
+        PowerUnit* yOutput;
+        PowerUnit* thetaOutput;
+
+        PIDSet corrector;
+        PoseTracker* globalPos;
+        bool willCorrect;
+
         std::vector<double> actionTs;
         std::vector<std::function<void(void)>> actions;
         std::vector<bool> actionCompleteds;

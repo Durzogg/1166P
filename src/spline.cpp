@@ -1,4 +1,4 @@
-#include "main.h"
+#include "profiling.h"
 
 CubicHermiteSpline::CubicHermiteSpline(Point startPos, Point startV, Point endPos, Point endV) {
     this->startPos = startPos;

@@ -48,9 +48,6 @@
 #include <cstdio>
 #include <string>
 
-#include "profiling.h"
-#include "kalman.h"
-
 /**
  * If you find doing pros::Motor() to be tedious and you'd prefer just to do
  * Motor, you can use the namespace with the following commented out line.
@@ -96,39 +93,8 @@ struct Inequality {
     double yIntercept;
     int equality;
 };
-struct PIDReturn {
-    double prevError;
-    double prevIntegral; 
-    int power;
-};
-struct ConstantContainer {
-    double kP; 
-    double kI;
-    double kD;
-};
-
-// pid.cpp
-void PIDMoverBasic(void);
-void PIDMover(Point goalPosition, bool reverse = false,                 std::vector<std::function<void(void)>> custom = {}, std::vector<double> executeAts = {});
-void PIDTurner(int setPoint, int direction,                 std::vector<std::function<void(void)>> custom = {}, std::vector<int> executeAt = {});
-void PIDArc(int chordLength, int maxDist, int direction,                std::vector<std::function<void(void)>> custom = {}, std::vector<int> executeAt = {});
-
-PIDReturn PIDCalc(double distanceMoved, double setPoint, bool isPositive, ConstantContainer constants, PIDReturn lastCycle);
 
 //hif
-
-// fileio.cpp
-class File {
-    private:
-        std::string filename;
-
-    public:
-        File(std::string filename);
-        std::string readFile(void);
-        void writeFile(std::string text);
-        void appendFile(std::string text);
-        void writeLoop(void);
-};
 
 // autons.cpp
     // AWP autons
@@ -140,53 +106,11 @@ class File {
     void RingSide(int color);
     void autoSkills(void);
 
-// draw.cpp
-void drawAutonSelector(void);
-void drawBasicSelector(void);
-
-// odom.cpp
-void initializeRobotOnCoordinate(pros::Rotation *rotational, pros::Imu *imu1, pros::Imu *imu2, Point offset, int startHeading);
-Point updateLocation(double heading, double dist);
-void updateCoordinateLoop(void);
-
-// math.cpp
-double calculateDistance(Point point1, Point point2);
-double calculateStandardDeviation(std::deque<double> listOfDifferences);
-Line calculatePerpendicularNonInequality(Point point1, Point point2);
-Inequality calculatePerpendicularInequality(Point point1, Point point2);
-int findEquality(Inequality line, Point includedPoint);
-Point findIntersection(Line line1, Line line2);
-Line findLineWithHeading(Point point1, int heading);
-double findHeadingOfLine(Point point1, Point point2);
-Line findLineWithPoints(Point point1, Point point2);
-QuadraticPolyData derivativeOfCubicPoly(CubicPolyData cubicPoly);
-Line derivativeOfQuadratic(QuadraticPolyData quadPoly);
-double fixAngle(double originalAngle);
-double RPMtoIPS(double rpm);
-double IPStoRPM(double ips);
-
-
-// tracking.cpp
-double calculateSingleDegree(double wheelDiameter);
-double readOdomPod(pros::Rotation odom);
-double readOdomVelocity(pros::Rotation odom);
-double readOdomAngle(pros::Rotation turnOdom);
-double getAggregatedHeading(KalmanFilter inertial1, KalmanFilter inertial2);
-void bindTurnTrackingWheelHeading();
-
-// sidetasks.cpp
-void ArmMacros(void);
-void eject(void);
-void autoEject(void);
-void CutoffPID(Point goalPoint, bool reverse, double maxAllowableTime);
-void CutoffTurnPID(Point goalPoint, bool reverse, double maxAllowableTime, int direction);
-void CutoffTurnHeadingPID(int goalHeading, bool reverse, double maxAllowableTime, int direction);
-void coords(void);
 
 // profiles.cpp
-std::vector<MotionProfile*> AWPSetup(int color);
+/*std::vector<MotionProfile*> AWPSetup(int color);
 std::vector<MotionProfile*> GoalRushSetup(int color);
 std::vector<MotionProfile*> RingSetup(int color);
-std::vector<MotionProfile*> SkillsSetup(void);
+std::vector<MotionProfile*> SkillsSetup(void);*/
 
 #endif  // _PROS_MAIN_H_

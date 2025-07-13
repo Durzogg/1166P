@@ -1,4 +1,4 @@
-#include "config.h"
+#include "z-config.h"
 
 /**
  * Runs initialization code. This occurs as soon as the program is started.
@@ -16,7 +16,6 @@ void initialize() {
 	odom.updateLoop();
 	chassis.addPID(&xPID, &yPID);
 	master.print(0, 0, "done");
-	pros::delay(2000);
 }
 
 /**
@@ -53,7 +52,15 @@ void competition_initialize() {
 void autonomous() {
 	chassis.continuousPower();
 	chassis.brakeMode(pros::v5::MotorBrake::hold);
-	chassis.moveToPoint(odom.transformToLocal({0, 15}));
+	
+	CubicHermiteSpline testSpline = CubicHermiteSpline({0, 0}, {0, 60}, {30, 30}, {60, 30});
+	MotionProfile* testProfile = new MotionProfile(&testSpline, RPMtoIPS(480), {0, 0}, {0, 0.9});
+	/*for (int i = 0; i < testProfile->holoProfile.size(); i++) {
+		std::cout << "x = " << testProfile->holoProfile[i].x << ", y = " << testProfile->holoProfile[i].y;
+		std::cout << ", heading = " << testProfile->holoProfile[i].heading;
+		std::cout << ", lvel.x = " << testProfile->holoProfile[i].linVel.x << ", lvel.y = " << testProfile->holoProfile[i].linVel.y << ", lvel.mag = " << testProfile->holoProfile[i].linVel.magnitude << ", avel = " << testProfile->holoProfile[i].angVel << "\n";
+	}*/
+	follower.startProfile(testProfile, false);
 }
 
 /**
@@ -70,7 +77,6 @@ void autonomous() {
  * task, not resume it from where it left off.
  */
 void opcontrol() {
-	pros::delay(3000);
 	autonomous();
 	master.rumble("-.-");
 
@@ -91,9 +97,9 @@ void opcontrol() {
 	} 
 	// High Center Goal
 	else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_R1)) {
-		input.move(128);
-		storage.move(-128);
-		output.move(128);
+		input.move(96);
+		storage.move(-96);
+		output.move(96);
 	} 
 	// Storage
 	else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_L2)) {
@@ -103,14 +109,20 @@ void opcontrol() {
 	}
 	// Low Center Goal
 	else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_L1)) {
-		input.move(-128);
-		storage.move(128);
+		input.move(-80);
+		storage.move(-80);
 		output.brake();
 	}
 	else {
 		input.brake();
 		storage.brake();
 		output.brake();
+	}
+
+	// Unloader Mech
+	if (master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_A)) {
+		unloader.set_value(!unloader.get_value());
+		std::cout << unloader.get_value() << "\n";
 	}
 
 	
