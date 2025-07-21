@@ -1,4 +1,6 @@
-#include "proxy.h"
+#include "interface.h"
+
+// Tracking Sensor Interface
 
 TrackingSensor::TrackingSensor(std::function<double(void)> getValue, std::function<void(double val)> setValue, std::function<void(void)> reset) {
     m_getValue = getValue;
@@ -17,6 +19,8 @@ void TrackingSensor::set(double val) {
 void TrackingSensor::reset(void) {
     return m_reset();
 }
+
+// Power Unit Interface
 
 PowerUnit::PowerUnit(std::function<void(double val)> move, std::function<void(void)> stop) {
     m_move = move;

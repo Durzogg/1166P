@@ -1,8 +1,10 @@
 #ifndef _KALMAN_H_
 #define _KALMAN_H_
 
+#include <deque>
+
 #include "main.h"
-#include "proxy.h"
+#include "interface.h"
 #include "math.h"
 
 class KalmanFilter {

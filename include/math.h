@@ -1,6 +1,9 @@
 #ifndef _METH_H_
 #define _METH_H_
 
+#include <deque>
+#include <cmath>
+
 #include "main.h"
 
 struct Point {
@@ -17,6 +20,12 @@ struct Pose {
 struct Line {
     double slope;
     double yIntercept;
+};
+
+struct Inequality {
+    double slope;
+    double yIntercept;
+    int equality;
 };
 
 struct Vector {

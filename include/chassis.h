@@ -2,8 +2,9 @@
 #define _CHASSIS_H_
 
 #include <vector>
+
 #include "main.h"
-#include "proxy.h"
+#include "interface.h"
 #include "pid.h"
 #include "math.h"
 

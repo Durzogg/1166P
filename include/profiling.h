@@ -3,10 +3,9 @@
 
 #include <vector>
 #include <functional>
-#include <stdexcept>
 
 #include "main.h"
-#include "proxy.h"
+#include "interface.h"
 #include "odom.h"
 #include "pid.h"
 #include "math.h"

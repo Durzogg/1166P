@@ -2,7 +2,7 @@
 #define _ODOM_H_
 
 #include "main.h"
-#include "proxy.h"
+#include "interface.h"
 #include "math.h"
 
 class OdomPod {

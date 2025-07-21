@@ -4,6 +4,8 @@
 
 #include <functional>
 
+#include "main.h"
+
 // declaration
 class TrackingSensor {
     public:
@@ -33,6 +35,5 @@ class PowerUnit {
         std::function<void(void)> m_stop;
 
 };
-
 
 #endif

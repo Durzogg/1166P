@@ -40,13 +40,6 @@
  * You should add more #includes here
  */
 //#include "okapi/api.hpp"
-#include <list>
-#include <cmath>
-#include <functional>
-#include <vector>
-#include <deque>
-#include <cstdio>
-#include <string>
 
 /**
  * If you find doing pros::Motor() to be tedious and you'd prefer just to do
@@ -88,15 +81,12 @@ void opcontrol(void);
 #define waitUntil(condition) while (!(condition)) {pros::delay(50);}
 
 // structures
-struct Inequality {
-    double slope;
-    double yIntercept;
-    int equality;
-};
+
 
 //hif
 
 // autons.cpp
+/*
     // AWP autons
     void AWP(int color);
     void autoTest(void);
@@ -105,7 +95,7 @@ struct Inequality {
     void GoalRush(int color);
     void RingSide(int color);
     void autoSkills(void);
-
+*/
 
 // profiles.cpp
 /*std::vector<MotionProfile*> AWPSetup(int color);

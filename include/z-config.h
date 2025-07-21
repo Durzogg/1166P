@@ -3,7 +3,7 @@
 
 #include "main.h"
 #include "chassis.h"
-#include "proxy.h"
+#include "interface.h"
 #include "odom.h"
 #include "pid.h"
 #include "profiling.h"
