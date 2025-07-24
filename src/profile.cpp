@@ -137,14 +137,18 @@ void MotionProfile::generateVelocities() {
         double linearVelocityMultiplier = (assignedZone.zoneLine.slope * currentT) + assignedZone.zoneLine.yIntercept;
         // if (pointList.size() != 1000) {std::cout << linearVelocityMultiplier << ", t = " << t << "\n";}
         // the linear velocity is simply the multiplier (which is a percentage) of the maximum speed allowed by the profile
+        double currentMaxSpeed = this->maxSpeed;
+        double movementAngle = (std::atan2(nextPoint.y - currentPoint.y, nextPoint.x - currentPoint.x));
+        if (isHolo) {currentMaxSpeed = this->maxSpeed * (1 / std::abs(std::sin(nextPoint.x - currentPoint.x) + std::cos(nextPoint.y - currentPoint.y)));}
+        currentMaxSpeed = currentMaxSpeed;
         double linearVelocity = linearVelocityMultiplier * this->maxSpeed;
         // the angular velocity is the curvature of the current point multiplied by the current linear velocity
-        double angularVelocity = linearVelocity * this->path->calculateCurvature(currentT) * dir; //* (double) curveDirection;
+        double angularVelocityA = linearVelocity * this->path->calculateCurvature(currentT) * dir; //* (double) curveDirection;
         
         // adds the new velocities and point as the next profile point
         profile.push_back({currentPoint.x, currentPoint.y, currentPoint.heading, linearVelocity, angularVelocity, currentT});
         if (isHolo) {
-            holoProfile.push_back({currentPoint.x, currentPoint.y, newHeading, {nextPoint.x - currentPoint.x, nextPoint.y - currentPoint.y, linearVelocity, (std::atan2(nextPoint.y - currentPoint.y, nextPoint.x - currentPoint.x))}, 0, currentT});
+            holoProfile.push_back({currentPoint.x, currentPoint.y, newHeading, {nextPoint.x - currentPoint.x, nextPoint.y - currentPoint.y, linearVelocity, movementAngle}, 0, currentT});
         }
 /*
         // redefines the current point to the next point for the next loop

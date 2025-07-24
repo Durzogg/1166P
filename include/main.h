@@ -80,9 +80,6 @@ void opcontrol(void);
 // macros
 #define waitUntil(condition) while (!(condition)) {pros::delay(50);}
 
-// structures
-
-
 //hif
 
 // autons.cpp
