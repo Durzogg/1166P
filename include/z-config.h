@@ -9,6 +9,7 @@
 #include "profiling.h"
 #include "kalman.h"
 #include "math.h"
+#include "mcl.h"
 
 // Controllers
     pros::Controller master(pros::E_CONTROLLER_MASTER);
@@ -152,6 +153,12 @@
     PIDSet robotPIDs(&xPID, &yPID, &thetaPIDSub90, &thetaPIDAbove90);
     PoseTracker currentPose(&odom);
 
+    pros::Distance* f = new pros::Distance(99);
+    pros::Distance* l = new pros::Distance(99);
+    pros::Distance* r = new pros::Distance(99);
+
     VelocityController follower(&chassis.m_xOutput, &chassis.m_yOutput, &chassis.m_thetaOutput, &currentPose, robotPIDs);
+
+    ParticleFilter MCL(f, l, r, {5, 50, 180});
 
 #endif

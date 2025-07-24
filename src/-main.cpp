@@ -60,7 +60,8 @@ void autonomous() {
 		std::cout << ", heading = " << testProfile->holoProfile[i].heading;
 		std::cout << ", lvel.x = " << testProfile->holoProfile[i].linVel.x << ", lvel.y = " << testProfile->holoProfile[i].linVel.y << ", lvel.mag = " << testProfile->holoProfile[i].linVel.magnitude << ", avel = " << testProfile->holoProfile[i].angVel << "\n";
 	}*/
-	follower.startProfile(testProfile, false);
+	// follower.startProfile(testProfile, false);
+	MCL.test();
 }
 
 /**
@@ -105,7 +106,7 @@ void opcontrol() {
 	else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_L2)) {
 		input.move(128);
 		storage.move(128);
-		output.brake();
+		output.move(128);
 	}
 	// Low Center Goal
 	else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_L1)) {
