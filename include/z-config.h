@@ -153,12 +153,57 @@
     PIDSet robotPIDs(&xPID, &yPID, &thetaPIDSub90, &thetaPIDAbove90);
     PoseTracker currentPose(&odom);
 
-    pros::Distance* f = new pros::Distance(99);
-    pros::Distance* l = new pros::Distance(99);
-    pros::Distance* r = new pros::Distance(99);
+    TrackingSensor f(
+        []() -> double {
+            return 119;
+        },
+        [](double val) {
+            return;
+        },
+        []() {
+            return;
+        }
+    );
+
+    TrackingSensor l(
+        []() -> double {
+            return 64;
+        },
+        [](double val) {
+            return;
+        },
+        []() {
+            return;
+        }
+    );
+
+    TrackingSensor r(
+        []() -> double {
+            return 74;
+        },
+        [](double val) {
+            return;
+        },
+        []() {
+            return;
+        }
+    );
+
+
+    TrackingSensor ht(
+        []() -> double {
+            return 180;
+        },
+        [](double val) {
+            return;
+        },
+        []() {
+            return;
+        }
+    );
 
     VelocityController follower(&chassis.m_xOutput, &chassis.m_yOutput, &chassis.m_thetaOutput, &currentPose, robotPIDs);
 
-    ParticleFilter MCL(f, l, r, {5, 50, 180});
+    ParticleFilter MCL(f, l, r, ht, {5, 50, 180});
 
 #endif

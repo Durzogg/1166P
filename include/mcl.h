@@ -6,10 +6,18 @@
 
 #include "main.h"
 #include "math.h"
+#include "interface.h"
+
+struct Particle {
+    double x;
+    double y;
+    double heading;
+    double weight = 0;
+};
 
 class ParticleFilter {
     public:
-        ParticleFilter(pros::Distance* front, pros::Distance* left, pros::Distance* right, Pose startPose = {0, 0, -1}, int numParticles = 500);
+        ParticleFilter(TrackingSensor front, TrackingSensor left, TrackingSensor right, TrackingSensor headingTracker, Pose startPose = {0, 0, -1}, int numParticles = 500);
         void test();
 
 
@@ -17,13 +25,18 @@ class ParticleFilter {
         void distributeParticles(int numParticles);
         void distributeParticles(int numParticles, Pose startPose);
 
-        pros::Distance* m_front;
-        pros::Distance* m_left;
-        pros::Distance* m_right;
+        void motionUpdate(double linVel, double angVel, double time, double linAngle);
+
+        void sensorUpdate(void);
+
+        TrackingSensor m_front;
+        TrackingSensor m_left;
+        TrackingSensor m_right;
+        TrackingSensor m_heading;
 
         int m_numParticles;
 
-        std::vector<Pose>* m_particles;
+        std::vector<Particle>* m_particles;
         std::minstd_rand m_randengine;
 
 
