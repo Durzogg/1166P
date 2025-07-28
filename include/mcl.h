@@ -29,6 +29,12 @@ class ParticleFilter {
 
         void sensorUpdate(void);
 
+        void normalizeWeights(void);
+
+        Pose estimatePosition(void);
+
+        void resample(void);
+
         TrackingSensor m_front;
         TrackingSensor m_left;
         TrackingSensor m_right;

@@ -115,23 +115,142 @@ void ParticleFilter::sensorUpdate() {
     }
 }
 
+void ParticleFilter::normalizeWeights(void) {
+    double totalWeight = 0;
+    for (int i = 0; i < m_particles->size(); i++) {
+        totalWeight += m_particles->operator[](i).weight;
+    }
+
+    double scalingFactor = 1 / totalWeight;
+    for (int i = 0; i < m_particles->size(); i++) {
+        m_particles->operator[](i).weight *= scalingFactor;
+    }
+}
+
+Pose ParticleFilter::estimatePosition(void) {
+    Pose finalEstimate = {0, 0, 0};
+    for (int i = 0; i < m_particles->size(); i++) {
+        finalEstimate.x += m_particles->operator[](i).weight * m_particles->operator[](i).x;
+        finalEstimate.y += m_particles->operator[](i).weight * m_particles->operator[](i).y;
+        finalEstimate.heading += m_particles->operator[](i).weight * m_particles->operator[](i).heading;
+    }
+    return finalEstimate;
+}
+
+void ParticleFilter::resample(void) {
+    std::vector<Particle>* newParticles = new std::vector<Particle>;
+
+    std::vector<double> cumulativeParticleWeights;
+    double cumulativeWeight = 0;
+    for (int i = 0; i < m_particles->size(); i++) {
+        cumulativeWeight += m_particles->operator[](i).weight;
+        cumulativeParticleWeights.push_back(cumulativeWeight);
+    }
+    cumulativeParticleWeights.back() = 1.0;
+    
+    double step = 1.0 / m_particles->size();
+    std::uniform_real_distribution<double> startPointGen(0, step);
+    double currentWeight = startPointGen(m_randengine);
+
+    int j = 0;
+    for (int i = 0; i < m_particles->size(); i++) {
+        if (currentWeight > 1) {currentWeight = 1;}
+        for (; j < cumulativeParticleWeights.size(); j++) {
+            if (cumulativeParticleWeights[j] >= currentWeight) {
+                break;
+            }
+        }
+        if (j >= cumulativeParticleWeights.size()) {j = m_particles->size() - 1;}
+        newParticles->push_back(m_particles->operator[](j));
+        newParticles->back().weight = step;
+
+        currentWeight += step;
+    }
+
+    delete m_particles;
+    m_particles = newParticles;
+}
+
 void ParticleFilter::test(void) {
     //std::vector<Particle> initialParticles;
-    /*std::cout << "[";
+    std::cout << "[";
     for (int i = 0; i < m_numParticles; i++) {
         // std::cout << "(" << m_particles->operator[](i).x << ", " << m_particles->operator[](i).y << ")\n";
         std::cout << "(" << m_particles->operator[](i).x << ", " << m_particles->operator[](i).y << "), ";
         //initialParticles.push_back(m_particles->operator[](i));
     }
-    std::cout << "\b\b]\n\n\n\n\nWITH WEIGHTS:\n\n\n\n\n\n";*/
+    std::cout << "\b\b]\n\n\n"; // << \n\n\n\n\nWITH WEIGHTS:\n\n\n\n\n\n";
     this->sensorUpdate();
+    this->normalizeWeights();
     /*this->motionUpdate(10, 90, 0.25, fixAngle(270));
     for (int i = 0; i < m_numParticles; i++) {
         std::cout << "(1 - t)(" << initialParticles[i].x << ", " << initialParticles[i].y << ") + ";
         std::cout << "t(" << m_particles->operator[](i).x << ", " << m_particles->operator[](i).y << ")\n";
     }*/
+   double total = 0;
    for (int i = 0; i < m_numParticles; i++) {
-        std::cout << "Particle #" << i + 1 << " - (" << m_particles->operator[](i).x << ", " << m_particles->operator[](i).y << ", " << m_particles->operator[](i).heading << ", " << m_particles->operator[](i).weight << ")\n";
+        total += m_particles->operator[](i).weight;
+        //std::cout << "Particle #" << i + 1 << " - (" << m_particles->operator[](i).x << ", " << m_particles->operator[](i).y << ", " << m_particles->operator[](i).heading << ", " << m_particles->operator[](i).weight << ")\n";
         //std::cout << m_particles->operator[](i).weight << ", ";
    }
+   // std::cout << "Total Weight: " << total << "\n";
+
+   Pose finalPos = this->estimatePosition();
+   std::cout << "\n\nFinal Position: \nx = " << finalPos.x << ", y = " << finalPos.y << ", h = " << finalPos.heading << "\n\n\n";
+
+   this->resample();
+
+   this->sensorUpdate();
+   this->normalizeWeights();
+   /*this->motionUpdate(10, 90, 0.25, fixAngle(270));
+   for (int i = 0; i < m_numParticles; i++) {
+       std::cout << "(1 - t)(" << initialParticles[i].x << ", " << initialParticles[i].y << ") + ";
+       std::cout << "t(" << m_particles->operator[](i).x << ", " << m_particles->operator[](i).y << ")\n";
+   }*/
+    total = 0;
+    for (int i = 0; i < m_numParticles; i++) {
+        total += m_particles->operator[](i).weight;
+        // std::cout << "Particle #" << i + 1 << " - (" << m_particles->operator[](i).x << ", " << m_particles->operator[](i).y << ", " << m_particles->operator[](i).heading << ", " << m_particles->operator[](i).weight << ")\n";
+        //std::cout << m_particles->operator[](i).weight << ", ";
+    }
+    // std::cout << "Total Weight: " << total << "\n";
+
+    std::cout << "[";
+    for (int i = 0; i < m_numParticles; i++) {
+        // std::cout << "(" << m_particles->operator[](i).x << ", " << m_particles->operator[](i).y << ")\n";
+        std::cout << "(" << m_particles->operator[](i).x << ", " << m_particles->operator[](i).y << "), ";
+        //initialParticles.push_back(m_particles->operator[](i));
+    }
+    std::cout << "\b\b]\n\n\n"; // << \n\n\n\n\nWITH WEIGHTS:\n\n\n\n\n\n";
+
+    finalPos = this->estimatePosition();
+    std::cout << "\n\nFinal Position: \nx = " << finalPos.x << ", y = " << finalPos.y << ", h = " << finalPos.heading << "\n";
+
+    this->resample();
+
+    this->sensorUpdate();
+    this->normalizeWeights();
+    /*this->motionUpdate(10, 90, 0.25, fixAngle(270));
+    for (int i = 0; i < m_numParticles; i++) {
+        std::cout << "(1 - t)(" << initialParticles[i].x << ", " << initialParticles[i].y << ") + ";
+        std::cout << "t(" << m_particles->operator[](i).x << ", " << m_particles->operator[](i).y << ")\n";
+    }*/
+     total = 0;
+     for (int i = 0; i < m_numParticles; i++) {
+         total += m_particles->operator[](i).weight;
+         // std::cout << "Particle #" << i + 1 << " - (" << m_particles->operator[](i).x << ", " << m_particles->operator[](i).y << ", " << m_particles->operator[](i).heading << ", " << m_particles->operator[](i).weight << ")\n";
+         //std::cout << m_particles->operator[](i).weight << ", ";
+     }
+     // std::cout << "Total Weight: " << total << "\n";
+ 
+     std::cout << "[";
+     for (int i = 0; i < m_numParticles; i++) {
+         // std::cout << "(" << m_particles->operator[](i).x << ", " << m_particles->operator[](i).y << ")\n";
+         std::cout << "(" << m_particles->operator[](i).x << ", " << m_particles->operator[](i).y << "), ";
+         //initialParticles.push_back(m_particles->operator[](i));
+     }
+     std::cout << "\b\b]\n\n\n"; // << \n\n\n\n\nWITH WEIGHTS:\n\n\n\n\n\n";
+ 
+     finalPos = this->estimatePosition();
+     std::cout << "\n\nFinal Position: \nx = " << finalPos.x << ", y = " << finalPos.y << ", h = " << finalPos.heading << "\n";
 }
