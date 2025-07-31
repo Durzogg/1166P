@@ -20,6 +20,7 @@ HoloChassis::HoloChassis(std::vector<pros::Motor*> FL, std::vector<pros::Motor*>
     );
 
 
+
     m_xOutputCorrect = PowerUnit(
         [this](double power) {m_xCorrect = power;},
         [this]() {m_xCorrect = 0;}
@@ -31,6 +32,60 @@ HoloChassis::HoloChassis(std::vector<pros::Motor*> FL, std::vector<pros::Motor*>
     m_thetaOutputCorrect = PowerUnit(
         [this](double power) {m_thetaCorrect = power;},
         [this]() {m_thetaCorrect = 0;}
+    );
+
+    m_lVel = TrackingSensor(
+        [this]() -> double {
+            double xrpmSpeed = (480 / 128) * (m_xPower + m_xCorrect);
+            double xipsSpeed = RPMtoIPS(xrpmSpeed);
+
+            double yrpmSpeed = (480 / 128) * (m_yPower + m_yCorrect);
+            double yipsSpeed = RPMtoIPS(yrpmSpeed);
+
+            //std::cout << "lv: " << std::sqrt(std::pow(xipsSpeed, 2) + std::pow(yipsSpeed, 2)) << "\n";
+
+            return std::sqrt(std::pow(xipsSpeed, 2) + std::pow(yipsSpeed, 2));
+        },
+        [this](double val) {
+            return;
+        },
+        [this]() {
+            return;
+        }
+    );
+    m_lAng = TrackingSensor(
+        [this]() -> double {
+            double xrpmSpeed = (480 / 128) * (m_xPower + m_xCorrect);
+            double xipsSpeed = RPMtoIPS(xrpmSpeed);
+
+            double yrpmSpeed = (480 / 128) * (m_yPower + m_yCorrect);
+            double yipsSpeed = RPMtoIPS(yrpmSpeed);
+
+            double angle = (180 / M_PI) * std::atan2(xipsSpeed, yipsSpeed);
+            if (angle < 0) {angle += 360;}
+
+            return angle;
+        },
+        [this](double val) {
+            return;
+        },
+        [this]() {
+            return;
+        }
+    );
+    m_aVel = TrackingSensor(
+        [this]() -> double {
+            double g_distBetweenWheels = 7.5;
+            double maxAngVel = (RPMtoIPS(480) / (g_distBetweenWheels / 2));
+            double angRadSpeed = (maxAngVel / 128) * (m_thetaPower + m_thetaCorrect);
+            return angRadSpeed;
+        },
+        [this](double val) {
+            return;
+        },
+        [this]() {
+            return;
+        }
     );
 
     m_xPower = 0;

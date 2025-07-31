@@ -1,13 +1,32 @@
 #include "mcl.h"
 
-ParticleFilter::ParticleFilter(TrackingSensor front, TrackingSensor left, TrackingSensor right, TrackingSensor headingTracker, Pose startPose, int numParticles) {
+#define INITIAL_PARTICLE_DEVIATION 10
+#define V_NOISE_DEVIATION 5
+#define W_NOISE_DEVIATION 3
+#define ANG_NOISE_DEVIATION 5
+#define PF_DELAY 20
+
+ParticleFilter::ParticleFilter(TrackingSensor front, TrackingSensor left, TrackingSensor right, TrackingSensor headingTracker, 
+                               TrackingSensor linVelTracker, TrackingSensor linAngleTracker, TrackingSensor angVelTracker,
+                               std::vector<Point> xyOffsets, std::vector<double> angOffsets,
+                               Pose startPose, int numParticles)
+{
     m_front = front;
     m_left = left;
     m_right = right;
     m_heading = headingTracker;
 
+    m_linVel = linVelTracker;
+    m_linAngle = linAngleTracker;
+    m_angVel = angVelTracker;
+
+    m_xyOff = xyOffsets;
+    m_angOff = angOffsets;
+
+    m_loopTask = NULL;
+
     m_numParticles = numParticles;
-    m_particles = new std::vector<Particle>();
+    m_particles = new std::vector<Particle>;
 
     std::random_device seeder = std::random_device();
     m_randengine = std::minstd_rand(seeder.operator()());
@@ -23,7 +42,7 @@ void ParticleFilter::distributeParticles(int numParticles) {
 
     std::uniform_real_distribution<double> xyDistributor(-72.0, 72.0);
     std::uniform_real_distribution<double> thetaDistributor(0.0, 360.0);
-    std::cout << "hallo\n";
+    
     for (int i = 0; i < numParticles; i++) {
         m_particles->push_back({xyDistributor(m_randengine), xyDistributor(m_randengine), thetaDistributor(m_randengine)});
     }
@@ -31,11 +50,12 @@ void ParticleFilter::distributeParticles(int numParticles) {
 
 void ParticleFilter::distributeParticles(int numParticles, Pose startPose) {
 
-    double deviation = 10;
-    std::cout << "hello\n";
+    double deviation = INITIAL_PARTICLE_DEVIATION;
     std::normal_distribution<double> xDistributor(startPose.x, deviation);
     std::normal_distribution<double> yDistributor(startPose.y, deviation);
     std::normal_distribution<double> thetaDistributor(startPose.heading, deviation);
+
+    double particleStep = 1 / numParticles;
 
     for (int i = 0; i < numParticles; i++) {
         double particleX = 1000;
@@ -52,16 +72,18 @@ void ParticleFilter::distributeParticles(int numParticles, Pose startPose) {
         } else if (particleHeading > 360) {
             particleHeading -= 360;
         }
-        m_particles->push_back({particleX, particleY, particleHeading});
+        m_particles->push_back({particleX, particleY, particleHeading, particleStep});
     }
-
 }
 
 void ParticleFilter::motionUpdate(double linVel, double angVel, double time, double linAngle) {
 
-    std::normal_distribution<double> vNoiseDistributor(0, 5);
-    std::normal_distribution<double> wNoiseDistributor(0, 3);
-    std::normal_distribution<double> linAngleNoiseDistributor(0, 5);
+    std::normal_distribution<double> vNoiseDistributor(0, V_NOISE_DEVIATION);
+    std::normal_distribution<double> wNoiseDistributor(0, W_NOISE_DEVIATION);
+    std::normal_distribution<double> linAngleNoiseDistributor(0, ANG_NOISE_DEVIATION);
+
+    std::uniform_real_distribution<double> xyDistributor(-72.0, 72.0);
+    std::uniform_real_distribution<double> thetaDistributor(0.0, 360.0);
 
     for (int i = 0; i < m_particles->size(); i++) {
         double linVelNoise = vNoiseDistributor(m_randengine);
@@ -72,9 +94,24 @@ void ParticleFilter::motionUpdate(double linVel, double angVel, double time, dou
         double linDistY = ((linVel + linVelNoise) * time) * std::sin((M_PI / 180) * (linAngle + linAngleNoise));
         double angDist = (angVel + angVelNoise) * time;
 
-        m_particles->operator[](i).x += linDistX;
+        m_particles->operator[](i).x += ((linVel + linVelNoise) * time);
         m_particles->operator[](i).y += linDistY;
         m_particles->operator[](i).heading += angDist;
+        
+        /*std::cout << "a: " << linDistX << "\n";/*
+        std::cout << "b: " << linAngle << "\n";
+        std::cout << "c: " << angVel << "\n\n";*/
+
+        if (m_particles->operator[](i).heading > 360) {m_particles->operator[](i).heading -= 360;}
+        if (m_particles->operator[](i).heading < 0) {m_particles->operator[](i).heading += 360;}
+        
+        if ((m_particles->operator[](i).x > 72) || (m_particles->operator[](i).x < -72) || 
+            (m_particles->operator[](i).y > 72) || (m_particles->operator[](i).y < -72)) 
+        {
+            m_particles->operator[](i).x = xyDistributor(m_randengine);
+            m_particles->operator[](i).y = xyDistributor(m_randengine);
+            m_particles->operator[](i).heading = thetaDistributor(m_randengine);
+        }
     }
 }
 
@@ -83,8 +120,12 @@ void ParticleFilter::sensorUpdate() {
     double variance = 5;
     double stepRadius = 0.1;
 
-    std::vector<double> sensorHeadingOffset = {0, -90, 90};
-    std::vector<double> sensorDistanceOffset = {3, 3, 3};
+    std::function<double(Point)> findR = [](Point xy) -> double {return std::sqrt(std::pow(xy.x, 2) + std::pow(xy.y, 2));};
+    std::vector<double> sensorROffset = {findR(m_xyOff[0]), findR(m_xyOff[1]), findR(m_xyOff[2])};
+
+    std::vector<double> sensorIsOffset = {(180 / M_PI) * std::atan2(m_xyOff[0].y, m_xyOff[0].x), 
+                                          (180 / M_PI) * std::atan2(m_xyOff[1].y, m_xyOff[1].x), 
+                                          (180 / M_PI) * std::atan2(m_xyOff[2].y, m_xyOff[2].x)};
 
     double actualF = m_front.get();
     double actualL = m_left.get();
@@ -96,11 +137,12 @@ void ParticleFilter::sensorUpdate() {
         double totalWeight = 0;
 
         for (int j = 0; j < 3; j++) {
-            double sensorHeadingRadians = (M_PI / 180) * fixAngle(m_particles->operator[](i).heading + sensorHeadingOffset[j]);
-            Point offset = {sensorDistanceOffset[j] * std::cos(sensorHeadingRadians), sensorDistanceOffset[j] * std::sin(sensorHeadingRadians)};
+            double sensorFacingRadians = (M_PI / 180) * fixAngle(m_particles->operator[](i).heading + m_angOff[j]);
+            double sensorIsRadians = (M_PI / 180) * fixAngle(m_particles->operator[](i).heading + sensorIsOffset[j]);
+            Point offset = {sensorROffset[j] * std::cos(sensorIsRadians), sensorROffset[j] * std::sin(sensorIsRadians)};
             Point start = {m_particles->operator[](i).x + offset.x, m_particles->operator[](i).y + offset.y};
             Point end = start;
-            Point step = {stepRadius * std::cos(sensorHeadingRadians), stepRadius * std::sin(sensorHeadingRadians)};
+            Point step = {stepRadius * std::cos(sensorFacingRadians), stepRadius * std::sin(sensorFacingRadians)};
             while (((end.x <= 72) && (end.x >= -72)) && ((end.y <= 72) && (end.y >= -72))) {
                 end.x += step.x;
                 end.y += step.y;
@@ -113,6 +155,8 @@ void ParticleFilter::sensorUpdate() {
 
             m_particles->operator[](i).weight = totalWeight;
     }
+
+    this->normalizeWeights();
 }
 
 void ParticleFilter::normalizeWeights(void) {
@@ -127,13 +171,17 @@ void ParticleFilter::normalizeWeights(void) {
     }
 }
 
-Pose ParticleFilter::estimatePosition(void) {
+Pose ParticleFilter::getPosition(void) {
+    while (!m_pfLock.try_lock()) {
+        pros::delay(5);
+    }
     Pose finalEstimate = {0, 0, 0};
     for (int i = 0; i < m_particles->size(); i++) {
         finalEstimate.x += m_particles->operator[](i).weight * m_particles->operator[](i).x;
         finalEstimate.y += m_particles->operator[](i).weight * m_particles->operator[](i).y;
         finalEstimate.heading += m_particles->operator[](i).weight * m_particles->operator[](i).heading;
     }
+    m_pfLock.unlock();
     return finalEstimate;
 }
 
@@ -171,86 +219,68 @@ void ParticleFilter::resample(void) {
     m_particles = newParticles;
 }
 
-void ParticleFilter::test(void) {
-    //std::vector<Particle> initialParticles;
+void ParticleFilter::run(void) {
+    
+    double currentLVel = m_linVel.get();
+    double currentLAng = m_linAngle.get();
+    double currentAVel = m_angVel.get();
+
+    int timesUntilResample = 30;
+
+    m_pfLock.lock();
+
+    while (true) {
+        // sensor update phase
+        this->sensorUpdate();
+
+        // resampling phase
+        if (timesUntilResample <= 0) {
+            this->resample();
+        }
+        timesUntilResample -= 1;
+
+        // motion update phase
+        m_pfLock.unlock();
+
+        currentLVel = m_linVel.get();
+        currentLAng = m_linAngle.get();
+        currentAVel = m_angVel.get();
+        pros::delay(PF_DELAY);
+
+        this->listParticles();
+
+        while (!m_pfLock.try_lock()) {
+            pros::delay(5);
+        }
+
+        this->motionUpdate(currentLVel, currentAVel, PF_DELAY / 1000.0, currentLAng);
+
+
+    }
+}
+
+void ParticleFilter::start(void) {
+    if (m_loopTask == NULL) {
+        m_loopTask = new pros::Task([this](){this->run();});
+    }
+}
+
+void ParticleFilter::listParticles(void) {
     std::cout << "[";
     for (int i = 0; i < m_numParticles; i++) {
         // std::cout << "(" << m_particles->operator[](i).x << ", " << m_particles->operator[](i).y << ")\n";
         std::cout << "(" << m_particles->operator[](i).x << ", " << m_particles->operator[](i).y << "), ";
         //initialParticles.push_back(m_particles->operator[](i));
     }
-    std::cout << "\b\b]\n\n\n"; // << \n\n\n\n\nWITH WEIGHTS:\n\n\n\n\n\n";
-    this->sensorUpdate();
-    this->normalizeWeights();
-    /*this->motionUpdate(10, 90, 0.25, fixAngle(270));
-    for (int i = 0; i < m_numParticles; i++) {
-        std::cout << "(1 - t)(" << initialParticles[i].x << ", " << initialParticles[i].y << ") + ";
-        std::cout << "t(" << m_particles->operator[](i).x << ", " << m_particles->operator[](i).y << ")\n";
-    }*/
+    std::cout << "\b\b]\n\n\n" << "\n\n\n\n\nWEIGHTS:\n\n\n\n\n\n";
    double total = 0;
    for (int i = 0; i < m_numParticles; i++) {
         total += m_particles->operator[](i).weight;
         //std::cout << "Particle #" << i + 1 << " - (" << m_particles->operator[](i).x << ", " << m_particles->operator[](i).y << ", " << m_particles->operator[](i).heading << ", " << m_particles->operator[](i).weight << ")\n";
         //std::cout << m_particles->operator[](i).weight << ", ";
    }
-   // std::cout << "Total Weight: " << total << "\n";
+   std::cout << "Total Weight: " << total << "\n\n\n";
 
-   Pose finalPos = this->estimatePosition();
+   Pose finalPos = this->getPosition();
    std::cout << "\n\nFinal Position: \nx = " << finalPos.x << ", y = " << finalPos.y << ", h = " << finalPos.heading << "\n\n\n";
-
-   this->resample();
-
-   this->sensorUpdate();
-   this->normalizeWeights();
-   /*this->motionUpdate(10, 90, 0.25, fixAngle(270));
-   for (int i = 0; i < m_numParticles; i++) {
-       std::cout << "(1 - t)(" << initialParticles[i].x << ", " << initialParticles[i].y << ") + ";
-       std::cout << "t(" << m_particles->operator[](i).x << ", " << m_particles->operator[](i).y << ")\n";
-   }*/
-    total = 0;
-    for (int i = 0; i < m_numParticles; i++) {
-        total += m_particles->operator[](i).weight;
-        // std::cout << "Particle #" << i + 1 << " - (" << m_particles->operator[](i).x << ", " << m_particles->operator[](i).y << ", " << m_particles->operator[](i).heading << ", " << m_particles->operator[](i).weight << ")\n";
-        //std::cout << m_particles->operator[](i).weight << ", ";
-    }
-    // std::cout << "Total Weight: " << total << "\n";
-
-    std::cout << "[";
-    for (int i = 0; i < m_numParticles; i++) {
-        // std::cout << "(" << m_particles->operator[](i).x << ", " << m_particles->operator[](i).y << ")\n";
-        std::cout << "(" << m_particles->operator[](i).x << ", " << m_particles->operator[](i).y << "), ";
-        //initialParticles.push_back(m_particles->operator[](i));
-    }
-    std::cout << "\b\b]\n\n\n"; // << \n\n\n\n\nWITH WEIGHTS:\n\n\n\n\n\n";
-
-    finalPos = this->estimatePosition();
-    std::cout << "\n\nFinal Position: \nx = " << finalPos.x << ", y = " << finalPos.y << ", h = " << finalPos.heading << "\n";
-
-    this->resample();
-
-    this->sensorUpdate();
-    this->normalizeWeights();
-    /*this->motionUpdate(10, 90, 0.25, fixAngle(270));
-    for (int i = 0; i < m_numParticles; i++) {
-        std::cout << "(1 - t)(" << initialParticles[i].x << ", " << initialParticles[i].y << ") + ";
-        std::cout << "t(" << m_particles->operator[](i).x << ", " << m_particles->operator[](i).y << ")\n";
-    }*/
-     total = 0;
-     for (int i = 0; i < m_numParticles; i++) {
-         total += m_particles->operator[](i).weight;
-         // std::cout << "Particle #" << i + 1 << " - (" << m_particles->operator[](i).x << ", " << m_particles->operator[](i).y << ", " << m_particles->operator[](i).heading << ", " << m_particles->operator[](i).weight << ")\n";
-         //std::cout << m_particles->operator[](i).weight << ", ";
-     }
-     // std::cout << "Total Weight: " << total << "\n";
- 
-     std::cout << "[";
-     for (int i = 0; i < m_numParticles; i++) {
-         // std::cout << "(" << m_particles->operator[](i).x << ", " << m_particles->operator[](i).y << ")\n";
-         std::cout << "(" << m_particles->operator[](i).x << ", " << m_particles->operator[](i).y << "), ";
-         //initialParticles.push_back(m_particles->operator[](i));
-     }
-     std::cout << "\b\b]\n\n\n"; // << \n\n\n\n\nWITH WEIGHTS:\n\n\n\n\n\n";
- 
-     finalPos = this->estimatePosition();
-     std::cout << "\n\nFinal Position: \nx = " << finalPos.x << ", y = " << finalPos.y << ", h = " << finalPos.heading << "\n";
 }

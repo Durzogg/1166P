@@ -9,7 +9,7 @@
 // declaration
 class TrackingSensor {
     public:
-        TrackingSensor(std::function<double(void)> getValue, std::function<void(double val)> setValue, std::function<void(void)> reset);
+        TrackingSensor(std::function<double(void)> getValue, std::function<void(double val)> setValue = [](double val){}, std::function<void(void)> reset = [](){});
         TrackingSensor() = default;
         double get(void);
         void set(double val);

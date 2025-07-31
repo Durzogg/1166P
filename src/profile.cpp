@@ -143,7 +143,7 @@ void MotionProfile::generateVelocities() {
         currentMaxSpeed = currentMaxSpeed;
         double linearVelocity = linearVelocityMultiplier * this->maxSpeed;
         // the angular velocity is the curvature of the current point multiplied by the current linear velocity
-        double angularVelocityA = linearVelocity * this->path->calculateCurvature(currentT) * dir; //* (double) curveDirection;
+        double angularVelocity = linearVelocity * this->path->calculateCurvature(currentT) * dir; //* (double) curveDirection;
         
         // adds the new velocities and point as the next profile point
         profile.push_back({currentPoint.x, currentPoint.y, currentPoint.heading, linearVelocity, angularVelocity, currentT});

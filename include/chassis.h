@@ -37,6 +37,10 @@ class HoloChassis {
         PowerUnit m_thetaOutput;
         PowerUnit m_thetaOutputCorrect;
 
+        TrackingSensor m_lVel;
+        TrackingSensor m_lAng;
+        TrackingSensor m_aVel;
+
     private:
         std::vector<pros::Motor*> m_FL;
         std::vector<pros::Motor*> m_FR;

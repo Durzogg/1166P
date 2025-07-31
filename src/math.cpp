@@ -278,7 +278,6 @@ double fixAngle(
     if (originalAngle <= 90) {
         fixedAngle = (originalAngle + 90) - (2 * ((originalAngle + 90) - 90));
     } else if (originalAngle <= 180) {
-        // fixedAngle = (originalAngle + 270) - (2 * (360 - (originalAngle + 270)));
         fixedAngle = 360 - (90 - (360 - (originalAngle + 180)));
     } else if (originalAngle <= 270) {
         fixedAngle = (originalAngle + 90) - (2 * ((originalAngle + 90) - 270));
@@ -290,6 +289,25 @@ double fixAngle(
     return fixedAngle;
 }
 
+double unfixAngle(
+    double originalAngle
+)
+{
+    double unfixedAngle = 0;
+    if (originalAngle <= 90) {
+        unfixedAngle = -originalAngle + 90;
+    } else if (originalAngle <= 180) {
+        unfixedAngle = -originalAngle + 450;
+    } else if (originalAngle <= 270) {
+        unfixedAngle = -originalAngle + 450;
+    } else if (originalAngle < 360) {
+        unfixedAngle = -originalAngle + 450;
+    } else {
+        unfixedAngle = -1;
+    }
+    return unfixedAngle;
+}
+
 double RPMtoIPS(double rpm) {
     // Global Values
     double g_gearRatio6 = 0.8;
@@ -298,7 +316,7 @@ double RPMtoIPS(double rpm) {
     double g_diameter = 4;
     double g_distBetweenWheels = 7.5;
     
-    return (g_maxRPM * g_gearRatio6 * (M_PI * g_diameter)) / 60;
+    return (rpm * g_gearRatio6 * (M_PI * g_diameter)) / 60;
 }
 
 double IPStoRPM(double ips) {

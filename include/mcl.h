@@ -17,8 +17,13 @@ struct Particle {
 
 class ParticleFilter {
     public:
-        ParticleFilter(TrackingSensor front, TrackingSensor left, TrackingSensor right, TrackingSensor headingTracker, Pose startPose = {0, 0, -1}, int numParticles = 500);
-        void test();
+        ParticleFilter(TrackingSensor front, TrackingSensor left, TrackingSensor right, TrackingSensor headingTracker, 
+                                       TrackingSensor linVelTracker, TrackingSensor linAngleTracker, TrackingSensor angVelTracker,
+                                       std::vector<Point> xyOffsets, std::vector<double> angOffsets,
+                                       Pose startPose = {0, 0, 0}, int numParticles = 500);
+        void listParticles(void);
+        void start(void);
+        Pose getPosition(void);
 
 
     private:
@@ -31,21 +36,29 @@ class ParticleFilter {
 
         void normalizeWeights(void);
 
-        Pose estimatePosition(void);
-
         void resample(void);
+
+        void run(void);
 
         TrackingSensor m_front;
         TrackingSensor m_left;
         TrackingSensor m_right;
         TrackingSensor m_heading;
 
+        TrackingSensor m_linVel;
+        TrackingSensor m_linAngle;
+        TrackingSensor m_angVel;
+
+        std::vector<Point> m_xyOff;
+        std::vector<double> m_angOff;
+
         int m_numParticles;
 
         std::vector<Particle>* m_particles;
         std::minstd_rand m_randengine;
 
-
+        pros::Mutex m_pfLock;
+        pros::Task* m_loopTask;
 };
 
 #endif

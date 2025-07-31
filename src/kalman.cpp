@@ -24,7 +24,6 @@ double getAggregatedHeading(KalmanFilter inertial1, KalmanFilter inertial2) {
             aggregatedHeading = I2Heading;
         }
     }
-
     return aggregatedHeading;
 }
 

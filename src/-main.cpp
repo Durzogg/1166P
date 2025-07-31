@@ -7,6 +7,7 @@
  * to keep execution time for this mode under a few seconds.
  */
 void initialize() {
+	inertial1.set_heading(270);
 	pros::delay(3000);
     Kalman1.startFilter();
     Kalman2.startFilter();
@@ -15,6 +16,7 @@ void initialize() {
 	perpOdom.set_position(0);
 	odom.updateLoop();
 	chassis.addPID(&xPID, &yPID);
+	mcl.start();
 	master.print(0, 0, "done");
 }
 
@@ -61,7 +63,6 @@ void autonomous() {
 		std::cout << ", lvel.x = " << testProfile->holoProfile[i].linVel.x << ", lvel.y = " << testProfile->holoProfile[i].linVel.y << ", lvel.mag = " << testProfile->holoProfile[i].linVel.magnitude << ", avel = " << testProfile->holoProfile[i].angVel << "\n";
 	}*/
 	// follower.startProfile(testProfile, false);
-	MCL.test();
 }
 
 /**

@@ -39,6 +39,10 @@
         pros::Rotation parallelRightOdom(13);
         pros::Rotation perpOdom(11);
 
+        pros::Distance front(12);
+        pros::Distance left(11);
+        pros::Distance right(13);
+
         pros::IMU inertial1(14);
         pros::IMU inertial2(15);
 
@@ -69,12 +73,6 @@
     TrackingSensor angVelTracker(
         []() -> double {
             return ((leftOdom.measureVelocity() - rightOdom.measureVelocity()) / 5);
-        },
-        [](double val) {
-            return;
-        },
-        []() {
-            return;
         }
     );
 
@@ -98,13 +96,7 @@
 
     TrackingSensor headingTracker(
         []() -> double {
-            return getAggregatedHeading(Kalman1, Kalman2);
-        },
-        [](double val) {
-            return;
-        },
-        []() {
-            return;
+            return Kalman1.getFilteredHeading();
         }
     );
 
@@ -153,57 +145,35 @@
     PIDSet robotPIDs(&xPID, &yPID, &thetaPIDSub90, &thetaPIDAbove90);
     PoseTracker currentPose(&odom);
 
-    TrackingSensor f(
+    TrackingSensor frontDistance(
         []() -> double {
-            return 119;
-        },
-        [](double val) {
-            return;
-        },
-        []() {
-            return;
+            return (front.get() / 10) / 2.54;
         }
     );
 
-    TrackingSensor l(
+    TrackingSensor leftDistance(
         []() -> double {
-            return 64;
-        },
-        [](double val) {
-            return;
-        },
-        []() {
-            return;
+            return (left.get() / 10) / 2.54;
         }
     );
 
-    TrackingSensor r(
+    TrackingSensor rightDistance(
         []() -> double {
-            return 74;
-        },
-        [](double val) {
-            return;
-        },
-        []() {
-            return;
+            return (right.get() / 10) / 2.54;
         }
     );
 
-
-    TrackingSensor ht(
+    TrackingSensor linAngleTracker(
         []() -> double {
-            return 180;
-        },
-        [](double val) {
-            return;
-        },
-        []() {
-            return;
+            double offsetFromHeading = chassis.m_lAng.get() < 180 ? chassis.m_lAng.get() : chassis.m_lAng.get() - 360;
+            return headingTracker.get() + offsetFromHeading;
         }
     );
 
     VelocityController follower(&chassis.m_xOutput, &chassis.m_yOutput, &chassis.m_thetaOutput, &currentPose, robotPIDs);
 
-    ParticleFilter MCL(f, l, r, ht, {5, 50, 180});
+    ParticleFilter mcl(frontDistance, leftDistance, rightDistance, headingTracker, 
+                       chassis.m_lVel, linAngleTracker, chassis.m_aVel, 
+                       {{-3.5, 6.25}, {-7.75, -1}, {7.75, -1}}, {0, -90, 90});
 
 #endif
