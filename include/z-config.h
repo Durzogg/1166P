@@ -147,19 +147,22 @@
 
     TrackingSensor frontDistance(
         []() -> double {
-            return (front.get() / 10) / 2.54;
+            double val = front.get();
+            return val == 9999 ? -1 : (val / 10) / 2.54;
         }
     );
 
     TrackingSensor leftDistance(
         []() -> double {
-            return (left.get() / 10) / 2.54;
+            double val = left.get();
+            return val == 9999 ? -1 : (val / 10) / 2.54;
         }
     );
 
     TrackingSensor rightDistance(
         []() -> double {
-            return (right.get() / 10) / 2.54;
+            double val = right.get();
+            return val == 9999 ? -1 : (val / 10) / 2.54;
         }
     );
 

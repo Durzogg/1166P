@@ -20,7 +20,7 @@ class ParticleFilter {
         ParticleFilter(TrackingSensor front, TrackingSensor left, TrackingSensor right, TrackingSensor headingTracker, 
                                        TrackingSensor linVelTracker, TrackingSensor linAngleTracker, TrackingSensor angVelTracker,
                                        std::vector<Point> xyOffsets, std::vector<double> angOffsets,
-                                       Pose startPose = {0, 0, 0}, int numParticles = 500);
+                                       Pose startPose = {0, 0, -1}, int numParticles = 500);
         void listParticles(void);
         void start(void);
         Pose getPosition(void);

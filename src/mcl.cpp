@@ -97,10 +97,6 @@ void ParticleFilter::motionUpdate(double linVel, double angVel, double time, dou
         m_particles->operator[](i).x += ((linVel + linVelNoise) * time);
         m_particles->operator[](i).y += linDistY;
         m_particles->operator[](i).heading += angDist;
-        
-        /*std::cout << "a: " << linDistX << "\n";/*
-        std::cout << "b: " << linAngle << "\n";
-        std::cout << "c: " << angVel << "\n\n";*/
 
         if (m_particles->operator[](i).heading > 360) {m_particles->operator[](i).heading -= 360;}
         if (m_particles->operator[](i).heading < 0) {m_particles->operator[](i).heading += 360;}
@@ -132,11 +128,25 @@ void ParticleFilter::sensorUpdate() {
     double actualR = m_right.get();
     std::vector<double> actuals = {actualF, actualL, actualR};
 
+    double validSensors = 3;
+
+    for (int i = 0; i < actuals.size(); i++) {
+        if (actuals[i] == -1) {
+            validSensors--;
+        }
+    }
+    
+    std::uniform_int_distribution pickOne = std::uniform_int_distribution(300, 500);
+
+    double one = pickOne(m_randengine);
+
     for (int i = 0; i < m_particles->size(); i++) {
         
         double totalWeight = 0;
+        if (i == one) {std::cout << "x: " << m_particles->back().x << ", y = " << m_particles->back().y << ", h = " << m_particles->back().heading << "\n";}
 
         for (int j = 0; j < 3; j++) {
+            if (actuals[j] == -1) {continue;}
             double sensorFacingRadians = (M_PI / 180) * fixAngle(m_particles->operator[](i).heading + m_angOff[j]);
             double sensorIsRadians = (M_PI / 180) * fixAngle(m_particles->operator[](i).heading + sensorIsOffset[j]);
             Point offset = {sensorROffset[j] * std::cos(sensorIsRadians), sensorROffset[j] * std::sin(sensorIsRadians)};
@@ -149,12 +159,17 @@ void ParticleFilter::sensorUpdate() {
             }
             double distance = calculateDistance(start, end);
 
+            if (i == one) {std::cout << m_angOff[j] << ": " << distance << ", ";}
+
             totalWeight += std::pow(M_E, (-1 * std::pow(distance - actuals[j], 2)) / (2 * std::pow(variance, 2)));
         }
-            totalWeight /= 3;
+            totalWeight /= validSensors;
+
+            if (i == one) {std::cout << "\b\b\n\n";}
 
             m_particles->operator[](i).weight = totalWeight;
     }
+    std::cout << "\n";
 
     this->normalizeWeights();
 }

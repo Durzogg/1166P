@@ -16,7 +16,7 @@ void initialize() {
 	perpOdom.set_position(0);
 	odom.updateLoop();
 	chassis.addPID(&xPID, &yPID);
-	mcl.start();
+	// mcl.start();
 	master.print(0, 0, "done");
 }
 
@@ -125,6 +125,10 @@ void opcontrol() {
 	if (master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_A)) {
 		unloader.set_value(!unloader.get_value());
 		std::cout << unloader.get_value() << "\n";
+	}
+
+	if (master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_UP)) {
+		std::cout << "f: " << frontDistance.get() << ", l: " << leftDistance.get() << ", r: " << rightDistance.get() << "\n";
 	}
 
 	
