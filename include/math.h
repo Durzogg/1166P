@@ -73,6 +73,7 @@ double fixAngle(double originalAngle);
 double unfixAngle(double originalAngle);
 double RPMtoIPS(double rpm);
 double IPStoRPM(double ips);
+double bind180(double heading);
 
 
 

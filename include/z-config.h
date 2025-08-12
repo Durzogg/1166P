@@ -177,6 +177,6 @@
 
     ParticleFilter mcl(frontDistance, leftDistance, rightDistance, headingTracker, 
                        chassis.m_lVel, linAngleTracker, chassis.m_aVel, 
-                       {{-3.5, 6.25}, {-7.75, -1}, {7.75, -1}}, {0, -90, 90});
+                       {{-4, 7.5}, {-7.5, 0}, {7.5, 0}}, {0, -90, 90});
 
 #endif

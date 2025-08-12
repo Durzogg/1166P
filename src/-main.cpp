@@ -16,7 +16,7 @@ void initialize() {
 	perpOdom.set_position(0);
 	odom.updateLoop();
 	chassis.addPID(&xPID, &yPID);
-	// mcl.start();
+	mcl.start();
 	master.print(0, 0, "done");
 }
 

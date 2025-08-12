@@ -44,7 +44,8 @@ void ParticleFilter::distributeParticles(int numParticles) {
     std::uniform_real_distribution<double> thetaDistributor(0.0, 360.0);
     
     for (int i = 0; i < numParticles; i++) {
-        m_particles->push_back({xyDistributor(m_randengine), xyDistributor(m_randengine), thetaDistributor(m_randengine)});
+        //m_particles->push_back({xyDistributor(m_randengine), xyDistributor(m_randengine), thetaDistributor(m_randengine)});
+        m_particles->push_back({-10.5, 35.75, 16.5, 1.0 / numParticles});
     }
 }
 
@@ -72,7 +73,8 @@ void ParticleFilter::distributeParticles(int numParticles, Pose startPose) {
         } else if (particleHeading > 360) {
             particleHeading -= 360;
         }
-        m_particles->push_back({particleX, particleY, particleHeading, particleStep});
+        // m_particles->push_back({particleX, particleY, particleHeading, particleStep});
+        m_particles->push_back({-10.5, 35.75, 16.5, particleStep});
     }
 }
 
@@ -119,9 +121,11 @@ void ParticleFilter::sensorUpdate() {
     std::function<double(Point)> findR = [](Point xy) -> double {return std::sqrt(std::pow(xy.x, 2) + std::pow(xy.y, 2));};
     std::vector<double> sensorROffset = {findR(m_xyOff[0]), findR(m_xyOff[1]), findR(m_xyOff[2])};
 
-    std::vector<double> sensorIsOffset = {(180 / M_PI) * std::atan2(m_xyOff[0].y, m_xyOff[0].x), 
-                                          (180 / M_PI) * std::atan2(m_xyOff[1].y, m_xyOff[1].x), 
-                                          (180 / M_PI) * std::atan2(m_xyOff[2].y, m_xyOff[2].x)};
+    std::cout << "lr = " << sensorROffset[1] << "\nfr = " << sensorROffset[0] << "\nrr = " << sensorROffset[2] << "\n\n";
+
+    std::vector<double> sensorIsOffset = {bind180(unfixAngle((180 / M_PI) * std::atan2(m_xyOff[0].y, m_xyOff[0].x))), 
+                                          bind180(unfixAngle((180 / M_PI) * std::atan2(m_xyOff[1].y, m_xyOff[1].x))), 
+                                          bind180(unfixAngle((180 / M_PI) * std::atan2(m_xyOff[2].y, m_xyOff[2].x)))};
 
     double actualF = m_front.get();
     double actualL = m_left.get();
@@ -146,11 +150,12 @@ void ParticleFilter::sensorUpdate() {
         if (i == one) {std::cout << "x: " << m_particles->back().x << ", y = " << m_particles->back().y << ", h = " << m_particles->back().heading << "\n";}
 
         for (int j = 0; j < 3; j++) {
-            if (actuals[j] == -1) {continue;}
+            // if (actuals[j] == -1) {continue;}
             double sensorFacingRadians = (M_PI / 180) * fixAngle(m_particles->operator[](i).heading + m_angOff[j]);
             double sensorIsRadians = (M_PI / 180) * fixAngle(m_particles->operator[](i).heading + sensorIsOffset[j]);
             Point offset = {sensorROffset[j] * std::cos(sensorIsRadians), sensorROffset[j] * std::sin(sensorIsRadians)};
             Point start = {m_particles->operator[](i).x + offset.x, m_particles->operator[](i).y + offset.y};
+            //std::cout << m_angOff[j] << ": (" << start.x << ", " << start.y << ")\n";
             Point end = start;
             Point step = {stepRadius * std::cos(sensorFacingRadians), stepRadius * std::sin(sensorFacingRadians)};
             while (((end.x <= 72) && (end.x >= -72)) && ((end.y <= 72) && (end.y >= -72))) {
@@ -159,17 +164,17 @@ void ParticleFilter::sensorUpdate() {
             }
             double distance = calculateDistance(start, end);
 
-            if (i == one) {std::cout << m_angOff[j] << ": " << distance << ", ";}
+            std::cout << m_angOff[j] << ": " << distance << ", ";
 
             totalWeight += std::pow(M_E, (-1 * std::pow(distance - actuals[j], 2)) / (2 * std::pow(variance, 2)));
         }
+        std::cout << "\n";
             totalWeight /= validSensors;
 
-            if (i == one) {std::cout << "\b\b\n\n";}
+            std::cout << "\b\b\n\n";
 
             m_particles->operator[](i).weight = totalWeight;
     }
-    std::cout << "\n";
 
     this->normalizeWeights();
 }
@@ -250,7 +255,8 @@ void ParticleFilter::run(void) {
 
         // resampling phase
         if (timesUntilResample <= 0) {
-            this->resample();
+            //this->resample();
+            timesUntilResample = 30;
         }
         timesUntilResample -= 1;
 
@@ -268,7 +274,7 @@ void ParticleFilter::run(void) {
             pros::delay(5);
         }
 
-        this->motionUpdate(currentLVel, currentAVel, PF_DELAY / 1000.0, currentLAng);
+        //this->motionUpdate(currentLVel, currentAVel, PF_DELAY / 1000.0, currentLAng);
 
 
     }

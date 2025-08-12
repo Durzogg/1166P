@@ -329,3 +329,9 @@ double IPStoRPM(double ips) {
 
     return (ips / (M_PI * g_diameter) / g_gearRatio6) * 60;
 }
+
+double bind180(double heading) {
+    if (heading < -180) {heading += 360;}
+    if (heading > 180) {heading -= 360;}
+    return heading;
+}
