@@ -48,6 +48,7 @@
 
     // Three-Wire Devices
         pros::adi::DigitalOut unloader(8);
+        pros::adi::DigitalOut aligner(1);
 
 // Program Module Initialization
 

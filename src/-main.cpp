@@ -17,7 +17,7 @@ void initialize() {
 	odom.updateLoop();
 	chassis.addPID(&xPID, &yPID);
 	mcl.start();
-	master.print(0, 0, "done");
+	master.print(0, 0, "Initialized!");
 }
 
 /**
@@ -124,7 +124,11 @@ void opcontrol() {
 	// Unloader Mech
 	if (master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_A)) {
 		unloader.set_value(!unloader.get_value());
-		std::cout << unloader.get_value() << "\n";
+	}
+
+	// Aligner Mech
+	if (master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_B)) {
+		aligner.set_value(!aligner.get_value());
 	}
 
 	if (master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_UP)) {
