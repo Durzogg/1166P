@@ -97,7 +97,7 @@
 
     TrackingSensor headingTracker(
         []() -> double {
-            return Kalman1.getFilteredHeading();
+            return Kalman2.getFilteredHeading();
         }
     );
 
