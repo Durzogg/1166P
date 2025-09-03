@@ -46,9 +46,13 @@
         pros::IMU inertial1(14);
         pros::IMU inertial2(15);
 
+        pros::Optical color(99);
+        double colorEnabled = 0;
+
     // Three-Wire Devices
         pros::adi::DigitalOut unloader(8);
         pros::adi::DigitalOut aligner(1);
+        pros::adi::DigitalOut descorer(99);
 
 // Program Module Initialization
 

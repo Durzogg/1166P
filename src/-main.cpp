@@ -120,6 +120,23 @@ void opcontrol() {
 		storage.brake();
 		output.brake();
 	}
+	// color sort
+	if (((master.get_digital(pros::E_CONTROLLER_DIGITAL_R2)) || (master.get_digital(pros::E_CONTROLLER_DIGITAL_R1)) 
+		|| (master.get_digital(pros::E_CONTROLLER_DIGITAL_L2)) || (master.get_digital(pros::E_CONTROLLER_DIGITAL_L1)))
+		&&
+		(((colorEnabled == 1) && (color.get_hue() > 180)) // remove blue
+		|| ((colorEnabled == 2) && (color.get_hue() < 35)))) // remove red
+	{
+		input.move(128);
+		storage.brake();
+		output.move(-128);
+	}
+
+	// color sort toggle
+	if (master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_DOWN)) {
+		colorEnabled++;
+		if (colorEnabled >= 2) {colorEnabled = 0;}
+	}
 
 	// Unloader Mech
 	if (master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_A)) {
@@ -129,6 +146,11 @@ void opcontrol() {
 	// Aligner Mech
 	if (master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_B)) {
 		aligner.set_value(!aligner.get_value());
+	}
+
+	// Descorer Mech
+	if (master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_Y)) {
+		aligner.set_value(!descorer.get_value());
 	}
 
 	if (master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_UP)) {
