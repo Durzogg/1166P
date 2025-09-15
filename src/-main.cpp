@@ -17,7 +17,7 @@ void initialize() {
 	odom.updateLoop();
 	chassis.addPID(&xPID, &yPID);
 	mcl.start();
-	master.print(0, 0, "Initialized!");
+	// master.print(0, 0, "Initialized!");
 }
 
 /**
@@ -84,6 +84,13 @@ void opcontrol() {
 
 	int deadzone = 15;
 
+	int colorDelay = 0;
+	int colorEnabled = 0;
+
+	master.print(0, 0, "color = %d", colorEnabled);
+
+	color.set_led_pwm(100);
+
 	while (true) {
 	// Mecanum Drive Control
 		chassis.driverControl(master, deadzone);
@@ -124,33 +131,48 @@ void opcontrol() {
 	if (((master.get_digital(pros::E_CONTROLLER_DIGITAL_R2)) || (master.get_digital(pros::E_CONTROLLER_DIGITAL_R1)) 
 		|| (master.get_digital(pros::E_CONTROLLER_DIGITAL_L2)) || (master.get_digital(pros::E_CONTROLLER_DIGITAL_L1)))
 		&&
-		(((colorEnabled == 1) && (color.get_hue() > 180)) // remove blue
-		|| ((colorEnabled == 2) && (color.get_hue() < 35)))) // remove red
+		(((colorEnabled == 1) && (color.get_hue() > 60)) // remove blue
+		|| ((colorEnabled == 2) && (color.get_hue() < 20)))) // remove red
 	{
+		colorDelay = 10;
+	}
+	if (colorDelay > 0) {
+		colorDelay--;
 		input.move(128);
-		storage.brake();
+		if (colorDelay > 5) {storage.move(-128);}
 		output.move(-128);
 	}
 
+
 	// color sort toggle
-	if (master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_DOWN)) {
+	if (master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_A)) {
 		colorEnabled++;
-		if (colorEnabled >= 2) {colorEnabled = 0;}
+		if (colorEnabled > 2) {colorEnabled = 0;}
+
+		switch (colorEnabled) {
+			case 0:
+				master.print(0, 0, "remove none");
+			case 1:
+				master.print(0, 0, "remove blue");
+			case 2:
+				master.print(0, 0, "remove rhed");
+
+		}
 	}
 
 	// Unloader Mech
-	if (master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_A)) {
+	if (master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_Y)) {
 		unloader.set_value(!unloader.get_value());
 	}
 
 	// Aligner Mech
-	if (master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_B)) {
+	if (master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_RIGHT)) {
 		aligner.set_value(!aligner.get_value());
 	}
 
 	// Descorer Mech
-	if (master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_Y)) {
-		aligner.set_value(!descorer.get_value());
+	if (master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_B)) {
+		descorer.set_value(!descorer.get_value());
 	}
 
 	if (master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_UP)) {

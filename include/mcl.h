@@ -23,7 +23,8 @@ class ParticleFilter {
                                        Pose startPose = {0, 0, -1}, int numParticles = 500);
         void listParticles(void);
         void start(void);
-        Pose getPosition(void);
+        Pose getAveragePosition(void);
+        Pose getBestParticle(void);
 
 
     private:

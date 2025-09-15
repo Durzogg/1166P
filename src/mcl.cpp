@@ -115,7 +115,7 @@ void ParticleFilter::motionUpdate(double linVel, double angVel, double time, dou
 void ParticleFilter::sensorUpdate() {
     double heading = m_heading.get();
     double variance = 3;
-    double varianceH = 1;
+    double varianceH = 5;
     double stepRadius = 0.1;
 
     std::function<double(Point)> findR = [](Point xy) -> double {return std::sqrt(std::pow(xy.x, 2) + std::pow(xy.y, 2));};
@@ -171,7 +171,7 @@ void ParticleFilter::sensorUpdate() {
             std::cout << "diff = " << headingDiff << ", head = " << m_particles->operator[](i).heading << ", real = " << actualH;
             m_particles->operator[](i).weight = totalWeight;
 
-            std::cout << ", w = " << m_particles->operator[](i).weight << "\n";
+            std::cout << ", w = " << std::pow(M_E, (-1 * std::pow(headingDiff, 2)) / (2 * std::pow(varianceH, 2))) << "\n";
     }
 
     this->normalizeWeights();
@@ -189,7 +189,7 @@ void ParticleFilter::normalizeWeights(void) {
     }
 }
 
-Pose ParticleFilter::getPosition(void) {
+Pose ParticleFilter::getAveragePosition(void) {
     while (!m_pfLock.try_lock()) {
         pros::delay(5);
     }
@@ -209,6 +209,19 @@ Pose ParticleFilter::getPosition(void) {
     finalEstimate.heading = head;
     m_pfLock.unlock();
     return finalEstimate;
+}
+
+Pose ParticleFilter::getBestParticle(void) {
+    while (!m_pfLock.try_lock()) {
+        pros::delay(5);
+    }
+    Particle bestParticle = {0, 0, 0, 0};
+    for (int i = 0; i < m_particles->size(); i++) {
+        if (m_particles->operator[](i).weight > bestParticle.weight) {
+            bestParticle = m_particles->operator[](i);
+        }
+    }
+    return {bestParticle.x, bestParticle.y, bestParticle.heading};
 }
 
 void ParticleFilter::resample(void) {
@@ -323,6 +336,6 @@ void ParticleFilter::listParticles(void) {
    }
    std::cout << "Total Weight: " << total << "\n\n\n";
 
-   Pose finalPos = this->getPosition();
+   Pose finalPos = this->getBestParticle();
    std::cout << "\n\nFinal Position: \nx = " << finalPos.x << ", y = " << finalPos.y << ", h = " << finalPos.heading << "\n\n\n";
 }
