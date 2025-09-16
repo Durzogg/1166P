@@ -354,13 +354,19 @@ void DiffChassis::brake() {
 
 void DiffChassis::driverControl(pros::Controller controller, double dz) {
     m_fbPower = controller.get_analog(ANALOG_RIGHT_Y);
-    m_thetaPower = controller.get_analog(ANALOG_LEFT_X);
+    m_thetaPower = -controller.get_analog(ANALOG_LEFT_X);
 
     if ((m_fbPower < dz) && (m_fbPower > -dz)) {
         m_fbPower = 0;
+    } else {
+        m_fbPower -= 15;
+        m_fbPower *= 1.13;
     }
     if ((m_thetaPower < dz) && (m_thetaPower > -dz)) {
         m_thetaPower = 0;
+    } else {
+        m_thetaPower -= 15;
+        m_thetaPower *= 1.13;
     }
 }
 

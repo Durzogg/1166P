@@ -1,4 +1,4 @@
-#include "z-config.h"
+#include "z-config-r2.h"
 
 /**
  * Runs initialization code. This occurs as soon as the program is started.
@@ -7,16 +7,16 @@
  * to keep execution time for this mode under a few seconds.
  */
 void initialize() {
-	inertial1.set_heading(270);
+	//inertial1.set_heading(270);
 	pros::delay(3000);
-    Kalman1.startFilter();
-    Kalman2.startFilter();
-	parallelLeftOdom.set_position(0);
-	parallelRightOdom.set_position(0);
-	perpOdom.set_position(0);
-	odom.updateLoop();
-	chassis.addPID(&xPID, &yPID);
-	mcl.start();
+    //Kalman1.startFilter();
+    //Kalman2.startFilter();
+	//parallelLeftOdom.set_position(0);
+	//parallelRightOdom.set_position(0);
+	//perpOdom.set_position(0);
+	//odom.updateLoop();
+	chassis.addPID(&fbPID, &thetaPIDSub90);
+	//mcl.start();
 	// master.print(0, 0, "Initialized!");
 }
 
@@ -92,7 +92,7 @@ void opcontrol() {
 	color.set_led_pwm(100);
 
 	while (true) {
-	// Mecanum Drive Control
+	// Differential Drive Control
 		chassis.driverControl(master, deadzone);
 		chassis.move();
 
