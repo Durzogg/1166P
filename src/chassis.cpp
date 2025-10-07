@@ -257,7 +257,7 @@ DiffChassis::DiffChassis(std::vector<pros::Motor*> left, std::vector<pros::Motor
 
     m_lVel = TrackingSensor(
         [this]() -> double {
-            double xrpmSpeed = (450 / 128) * (m_fbPower + m_fbCorrect);
+            double xrpmSpeed = (480 / 128) * (m_fbPower + m_fbCorrect);
             double xipsSpeed = RPMtoIPS(xrpmSpeed);
 
             //std::cout << "lv: " << std::sqrt(std::pow(xipsSpeed, 2) + std::pow(yipsSpeed, 2)) << "\n";
@@ -332,18 +332,27 @@ DiffChassis::~DiffChassis() {
 }
 
 void DiffChassis::move() {
-    m_fbCorrect = 0;
-    m_thetaCorrect = 0;
     double g_distBetweenWheels = 13;
     for (int i = 0; i < m_left.size(); i++) {
-        m_left[i]->move((m_fbPower + m_fbCorrect) - (((m_thetaPower + m_thetaCorrect) * g_distBetweenWheels) / 2));
+        m_left[i]->move((m_fbPower + m_fbCorrect) + (((m_thetaPower + m_thetaCorrect) * g_distBetweenWheels) / 2));
     }
     for (int i = 0; i < m_right.size(); i++) {
-        m_right[i]->move((m_fbPower + m_fbCorrect) + (((m_thetaPower + m_thetaCorrect) * g_distBetweenWheels) / 2));
+        m_right[i]->move((m_fbPower + m_fbCorrect) - (((m_thetaPower + m_thetaCorrect) * g_distBetweenWheels) / 2));
+    }
+}
+
+void DiffChassis::move_relative(int distance, int speed) {
+    for (int i = 0; i < m_left.size(); i++) {
+        m_left[i]->move_relative(distance, speed);
+    }
+    for (int i = 0; i < m_right.size(); i++) {
+        m_right[i]->move_relative(distance, speed);
     }
 }
 
 void DiffChassis::brake() {
+    m_fbCorrect = 0;
+    m_thetaCorrect = 0;
     for (int i = 0; i < m_left.size(); i++) {
         m_left[i]->brake();
     }
@@ -354,7 +363,7 @@ void DiffChassis::brake() {
 
 void DiffChassis::driverControl(pros::Controller controller, double dz) {
     m_fbPower = controller.get_analog(ANALOG_RIGHT_Y);
-    m_thetaPower = -controller.get_analog(ANALOG_LEFT_X);
+    m_thetaPower = controller.get_analog(ANALOG_LEFT_X);
 
     if ((m_fbPower < dz) && (m_fbPower > -dz)) {
         m_fbPower = 0;

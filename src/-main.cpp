@@ -1,4 +1,4 @@
-#include "z-config-r2.h"
+#include "z-config.h"
 
 /**
  * Runs initialization code. This occurs as soon as the program is started.
@@ -7,17 +7,19 @@
  * to keep execution time for this mode under a few seconds.
  */
 void initialize() {
-	//inertial1.set_heading(270);
 	pros::delay(3000);
-    //Kalman1.startFilter();
-    //Kalman2.startFilter();
+	inertial1.set_heading(90);
+	inertial2.set_heading(90);
+    Kalman1.startFilter();
+    Kalman2.startFilter();
 	//parallelLeftOdom.set_position(0);
 	//parallelRightOdom.set_position(0);
-	//perpOdom.set_position(0);
-	//odom.updateLoop();
-	chassis.addPID(&fbPID, &thetaPIDSub90);
-	//mcl.start();
-	// master.print(0, 0, "Initialized!");
+	// perpOdom.set_position(0);
+	// odom.updateLoop();
+	// chassis.addPID(&fbPID, &thetaPIDAbove90);
+	// mcl.start();
+	color.set_led_pwm(100);
+	master.print(0, 0, "Initialized!");
 }
 
 /**
@@ -54,15 +56,78 @@ void competition_initialize() {
 void autonomous() {
 	chassis.continuousPower();
 	chassis.brakeMode(pros::v5::MotorBrake::hold);
-	
-	CubicHermiteSpline testSpline = CubicHermiteSpline({0, 0}, {0, 60}, {30, 30}, {60, 30});
-	MotionProfile* testProfile = new MotionProfile(&testSpline, RPMtoIPS(480), {0, 0}, {0, 0.9});
-	/*for (int i = 0; i < testProfile->holoProfile.size(); i++) {
-		std::cout << "x = " << testProfile->holoProfile[i].x << ", y = " << testProfile->holoProfile[i].y;
-		std::cout << ", heading = " << testProfile->holoProfile[i].heading;
-		std::cout << ", lvel.x = " << testProfile->holoProfile[i].linVel.x << ", lvel.y = " << testProfile->holoProfile[i].linVel.y << ", lvel.mag = " << testProfile->holoProfile[i].linVel.magnitude << ", avel = " << testProfile->holoProfile[i].angVel << "\n";
-	}*/
-	// follower.startProfile(testProfile, false);
+
+//hif
+	// autonomous setup
+
+	input.tare_position();
+	storage.tare_position();
+	output.tare_position();
+
+	int autonnumber = 2;
+
+
+	switch (autonnumber) {
+		case 1:
+		case -1:
+			// forward, turn to block, take block
+			bPID.movement(11.5);
+			thetaPID(makeRelative(-10))->movement(makeRelative(-10));
+			input.move(128);
+			storage.move(128);
+			output.move(128);
+			fPID.movement(-10);
+			pros::delay(500);
+			// turn to goal, move to goal, back up to align
+			thetaPID(makeRelative(110))->movement(makeRelative(110));
+			chassis.setFB(40);
+			pros::delay(1500);
+			chassis.setFB(-40);
+			pros::delay(250);
+			chassis.setFB(0);
+			pros::delay(200);
+			// score in goal
+			aligner.set_value(true);
+			input.move(128);
+			storage.move(-128);
+			output.move(-128);
+			pros::delay(6000);
+			// ending back-up
+			chassis.setFB(-40);
+			pros::delay(250);
+			chassis.setFB(0);
+			break;
+		case 2:
+		case -2:
+			// forward, turn to block, take block
+			bPID.movement(11.5);
+			thetaPID(makeRelative(165))->movement(makeRelative(165));
+			input.move(128);
+			storage.move(128);
+			output.move(128);
+			fPID.movement(-12);
+			pros::delay(500);
+			// turn to goal, move to goal
+			thetaPID(makeRelative(-40))->movement(makeRelative(-40));
+			chassis.setFB(40);
+			pros::delay(1500);
+			chassis.setFB(0);
+			pros::delay(200);
+			// score in goal
+			input.move(-60);
+			storage.move(-60);
+			output.brake();
+			pros::delay(6000);
+			// ending back-up
+			chassis.setFB(-40);
+			pros::delay(250);
+			chassis.setFB(0);
+			break;
+		case 3:
+		case -3:
+			// test
+			break;
+	}
 }
 
 /**
@@ -82,14 +147,14 @@ void opcontrol() {
 	autonomous();
 	master.rumble("-.-");
 
+	chassis.brake();
+
 	int deadzone = 15;
 
 	int colorDelay = 0;
 	int colorEnabled = 0;
 
 	master.print(0, 0, "color = %d", colorEnabled);
-
-	color.set_led_pwm(100);
 
 	while (true) {
 	// Differential Drive Control
@@ -174,12 +239,6 @@ void opcontrol() {
 	if (master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_B)) {
 		descorer.set_value(!descorer.get_value());
 	}
-
-	if (master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_UP)) {
-		std::cout << "f: " << frontDistance.get() << ", l: " << leftDistance.get() << ", r: " << rightDistance.get() << "\n";
-	}
-
-	
 
 	pros::delay(20);
 	}

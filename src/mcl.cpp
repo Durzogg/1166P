@@ -1,9 +1,8 @@
 #include "mcl.h"
 
 #define INITIAL_PARTICLE_DEVIATION 10
-#define V_NOISE_DEVIATION 5
-#define W_NOISE_DEVIATION 3
-#define ANG_NOISE_DEVIATION 5
+#define V_NOISE_DEVIATION 0.001
+#define W_NOISE_DEVIATION 0.05
 #define PF_DELAY 20
 
 ParticleFilter::ParticleFilter(TrackingSensor front, TrackingSensor left, TrackingSensor right, TrackingSensor headingTracker, 
@@ -45,7 +44,7 @@ void ParticleFilter::distributeParticles(int numParticles) {
     
     for (int i = 0; i < numParticles; i++) {
         m_particles->push_back({xyDistributor(m_randengine), xyDistributor(m_randengine), thetaDistributor(m_randengine)});
-        //m_particles->push_back({-10.5, 35.75, 16.5, 1.0 / numParticles});
+        //m_particles->push_back({40, -24, 0, 1.0 / numParticles});
     }
 }
 
@@ -81,18 +80,17 @@ void ParticleFilter::motionUpdate(double linVel, double angVel, double time, dou
 
     std::normal_distribution<double> vNoiseDistributor(0, V_NOISE_DEVIATION);
     std::normal_distribution<double> wNoiseDistributor(0, W_NOISE_DEVIATION);
-    std::normal_distribution<double> linAngleNoiseDistributor(0, ANG_NOISE_DEVIATION);
 
     std::uniform_real_distribution<double> xyDistributor(-72.0, 72.0);
     std::uniform_real_distribution<double> thetaDistributor(0.0, 360.0);
 
     for (int i = 0; i < m_particles->size(); i++) {
-        double linVelNoise = vNoiseDistributor(m_randengine);
-        double angVelNoise = wNoiseDistributor(m_randengine);
-        double linAngleNoise = linAngleNoiseDistributor(m_randengine);
 
-        double linDistX = ((linVel + linVelNoise) * time) * std::cos((M_PI / 180) * (linAngle + linAngleNoise));
-        double linDistY = ((linVel + linVelNoise) * time) * std::sin((M_PI / 180) * (linAngle + linAngleNoise));
+        double linVelNoise = vNoiseDistributor(m_randengine) * linVel;
+        double angVelNoise = wNoiseDistributor(m_randengine) * angVel;
+
+        double linDistX = ((linVel + linVelNoise) * time) * std::cos((M_PI / 180) * fixAngle(m_particles->operator[](i).heading + linAngle));
+        double linDistY = ((linVel + linVelNoise) * time) * std::sin((M_PI / 180) * fixAngle(m_particles->operator[](i).heading + linAngle));
         double angDist = (angVel + angVelNoise) * time;
 
         m_particles->operator[](i).x += linDistX;
@@ -115,7 +113,7 @@ void ParticleFilter::motionUpdate(double linVel, double angVel, double time, dou
 void ParticleFilter::sensorUpdate() {
     double heading = m_heading.get();
     double variance = 3;
-    double varianceH = 5;
+    double varianceH = 0.5;
     double stepRadius = 0.1;
 
     std::function<double(Point)> findR = [](Point xy) -> double {return std::sqrt(std::pow(xy.x, 2) + std::pow(xy.y, 2));};
@@ -164,14 +162,14 @@ void ParticleFilter::sensorUpdate() {
             double headingDiff = m_particles->operator[](i).heading - actualH;
             if (headingDiff > 180) {headingDiff -= 360;}
             if (headingDiff < -180) {headingDiff += 360;}
-            totalWeight += std::pow(M_E, (-1 * std::pow(headingDiff, 2)) / (2 * std::pow(varianceH, 2)));
+            totalWeight += 2 * std::pow(M_E, (-1 * std::pow(headingDiff, 2)) / (2 * std::pow(varianceH, 2)));
 
-            totalWeight /= validSensors + 1;
+            totalWeight /= validSensors + 2;
 
-            std::cout << "diff = " << headingDiff << ", head = " << m_particles->operator[](i).heading << ", real = " << actualH;
+            //std::cout << "diff = " << headingDiff << ", head = " << m_particles->operator[](i).heading << ", real = " << actualH;
             m_particles->operator[](i).weight = totalWeight;
 
-            std::cout << ", w = " << std::pow(M_E, (-1 * std::pow(headingDiff, 2)) / (2 * std::pow(varianceH, 2))) << "\n";
+            //std::cout << ", w = " << std::pow(M_E, (-1 * std::pow(headingDiff, 2)) / (2 * std::pow(varianceH, 2))) << "\n";
     }
 
     this->normalizeWeights();
@@ -221,6 +219,7 @@ Pose ParticleFilter::getBestParticle(void) {
             bestParticle = m_particles->operator[](i);
         }
     }
+    m_pfLock.unlock();
     return {bestParticle.x, bestParticle.y, bestParticle.heading};
 }
 
@@ -287,7 +286,7 @@ void ParticleFilter::run(void) {
 
         // resampling phase
         if (timesUntilResample <= 0) {
-            this->resample();
+            // this->resample();
             timesUntilResample = 5;
         }
         timesUntilResample -= 1;
@@ -308,7 +307,7 @@ void ParticleFilter::run(void) {
             pros::delay(5);
         }
 
-        this->motionUpdate(currentLVel, currentAVel, PF_DELAY / 1000.0, currentLAng);
+        // this->motionUpdate(currentLVel, currentAVel, PF_DELAY / 1000.0, currentLAng);
 
 
     }

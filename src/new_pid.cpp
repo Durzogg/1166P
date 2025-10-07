@@ -33,8 +33,6 @@ void PIDController::movement(
     }
     m_sensor.reset();
 
-    std::cout << "hif\n";
-
     // PID Calculation Variables
     // General Variables
     double power = 0;

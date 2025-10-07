@@ -73,6 +73,7 @@ class DiffChassis {
         ~DiffChassis();
 
         void move(void);
+        void move_relative(int distance, int speed);
         void brake(void);
         void brakeMode(pros::MotorBrake type);
         void driverControl(pros::Controller controller, double dz);
