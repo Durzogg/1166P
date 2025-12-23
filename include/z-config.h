@@ -55,7 +55,7 @@
 
 // Program Module Initialization
 
-    DiffChassis chassis = DiffChassis({&topLeft6, &topLeft2, &bottomLeft6, &bottomLeft2}, {&topRight6, &topRight2, &bottomRight6, &bottomRight2});
+    // DiffChassis chassis = DiffChassis({&topLeft6, &topLeft2, &bottomLeft6, &bottomLeft2}, {&topRight6, &topRight2, &bottomRight6, &bottomRight2});
 
     /* OdomPod leftOdom(&parallelLeftOdom, 2);
     OdomPod rightOdom(&parallelRightOdom, 2);

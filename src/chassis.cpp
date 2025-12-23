@@ -75,7 +75,7 @@ HoloChassis::HoloChassis(std::vector<pros::Motor*> FL, std::vector<pros::Motor*>
     );
     m_aVel = TrackingSensor(
         [this]() -> double {
-            double g_distBetweenWheels = 7.5;
+            double g_distBetweenWheels = 10.5;
             double maxAngVel = (RPMtoIPS(480) / (g_distBetweenWheels / 2));
             double angRadSpeed = (maxAngVel / 128) * (m_thetaPower + m_thetaCorrect);
             return angRadSpeed;
@@ -231,9 +231,12 @@ void HoloChassis::moveToPoint(Point localPoint, bool nonblocking) {
 
 
 
-DiffChassis::DiffChassis(std::vector<pros::Motor*> left, std::vector<pros::Motor*> right) {
+DiffChassis::DiffChassis(std::vector<pros::Motor*> left, std::vector<pros::Motor*> right, pros::controller_analog_e_t fbInput, pros::controller_analog_e_t rotInput) {
     m_left = left;
     m_right = right;
+
+    m_fbIn = fbInput;
+    m_rotIn = rotInput;
 
     m_fbOutput = PowerUnit(
         [this](double power) {m_fbPower = power;},
@@ -284,7 +287,7 @@ DiffChassis::DiffChassis(std::vector<pros::Motor*> left, std::vector<pros::Motor
     );
     m_aVel = TrackingSensor(
         [this]() -> double {
-            double g_distBetweenWheels = 13;
+            double g_distBetweenWheels = 10.5;
             double maxAngVel = ((2 * RPMtoIPS(450)) / g_distBetweenWheels);
             double angRadSpeed = (maxAngVel / 128) * (m_thetaPower + m_thetaCorrect);
             return angRadSpeed;
@@ -311,8 +314,9 @@ DiffChassis::DiffChassis(std::vector<pros::Motor*> left, std::vector<pros::Motor
 }
 
 DiffChassis::DiffChassis(std::vector<pros::Motor*> left, std::vector<pros::Motor*> right,
+                         pros::controller_analog_e_t fbInput, pros::controller_analog_e_t rotInput,
                          PIDController* fbPID, PIDController* thetaPID) 
-            : DiffChassis(left, right)
+            : DiffChassis(left, right, fbInput, rotInput)
 {
     m_fbPID = fbPID;
     m_thetaPID = thetaPID;
@@ -332,7 +336,7 @@ DiffChassis::~DiffChassis() {
 }
 
 void DiffChassis::move() {
-    double g_distBetweenWheels = 13;
+    double g_distBetweenWheels = 10.5;
     for (int i = 0; i < m_left.size(); i++) {
         m_left[i]->move((m_fbPower + m_fbCorrect) + (((m_thetaPower + m_thetaCorrect) * g_distBetweenWheels) / 2));
     }
@@ -341,13 +345,23 @@ void DiffChassis::move() {
     }
 }
 
-void DiffChassis::move_relative(int distance, int speed) {
+void DiffChassis::move_relative(double distance, int speed, bool nonblocking) {
+    bool suspended = false;
+    if (!chassisLock.try_lock()) {chassisTask->suspend(); this->brake(); suspended = true;}
+
+    distance = (distance / (M_PI * 3.25)) * 360;
+
+    int initialLDist = m_left[0]->get_position();
+    int initialRDist = m_right[0]->get_position();
+
     for (int i = 0; i < m_left.size(); i++) {
         m_left[i]->move_relative(distance, speed);
     }
     for (int i = 0; i < m_right.size(); i++) {
         m_right[i]->move_relative(distance, speed);
     }
+    waitUntil(((std::abs(m_left[0]->get_position() - initialLDist) >= std::abs(distance)) && (std::abs(m_left[0]->get_position() - initialLDist) >= std::abs(distance))) || nonblocking);
+    if (suspended) {chassisTask->resume();}
 }
 
 void DiffChassis::brake() {
@@ -362,9 +376,8 @@ void DiffChassis::brake() {
 }
 
 void DiffChassis::driverControl(pros::Controller controller, double dz) {
-    m_fbPower = controller.get_analog(ANALOG_RIGHT_Y);
-    m_thetaPower = controller.get_analog(ANALOG_LEFT_X);
-
+    m_fbPower = controller.get_analog(m_fbIn);
+    m_thetaPower = controller.get_analog(m_rotIn);
     if ((m_fbPower < dz) && (m_fbPower > -dz)) {
         m_fbPower = 0;
     } else {
@@ -408,7 +421,7 @@ void DiffChassis::continuousPower(void) {
     }
 }
 
-void DiffChassis::moveToPoint(Point localPoint, bool nonblocking) {
+void DiffChassis::moveToPoint(Point point, bool nonblocking, bool reverse) {
     if (!m_hasPID) {
         return;
     }
@@ -417,10 +430,13 @@ void DiffChassis::moveToPoint(Point localPoint, bool nonblocking) {
         chassisLock.unlock();
         this->continuousPower();
     }
-    m_thetaPID->movement(findHeadingOfLine({0, 0}, localPoint), false);
-    m_fbPID->movement(calculateDistance({0, 0}, localPoint), nonblocking);
-    if (!wasCont) {
-        // remove chassis task
+    double goalHead = findHeadingOfLine({0, 0}, point);
+    if (reverse) {
+        goalHead += 180;
+        if (goalHead > 360) {goalHead -= 360;}
     }
+    std::cout << goalHead << "\n";
+    // m_thetaPID->movement(goalHead, false);
+    m_fbPID->movement(calculateDistance({0, 0}, point), nonblocking);
     return;
 }

@@ -11,50 +11,124 @@
 #include "math.h"
 #include "mcl.h"
 
+// MASON SCHEME
+
+#define FB_INPUT pros::E_CONTROLLER_ANALOG_RIGHT_Y
+#define ROT_INPUT pros::E_CONTROLLER_ANALOG_LEFT_X
+
+#define INTAKE_ALL_IN pros::E_CONTROLLER_DIGITAL_R2
+#define INTAKE_ALL_OUT pros::E_CONTROLLER_DIGITAL_L1
+#define INTAKE_HOLD pros::E_CONTROLLER_DIGITAL_L2
+#define INTAKE_DROP pros::E_CONTROLLER_DIGITAL_R1
+
+#define LOADER_TOGGLE pros::E_CONTROLLER_DIGITAL_Y
+#define RAMP_TOGGLE pros::E_CONTROLLER_DIGITAL_RIGHT
+#define COLOR_TOGGLE pros::E_CONTROLLER_DIGITAL_A
+#define FINGER_TOGGLE pros::E_CONTROLLER_DIGITAL_B
+
+/*
+// DANE SCHEME
+#define FB_INPUT pros::E_CONTROLLER_ANALOG_RIGHT_Y
+#define ROT_INPUT pros::E_CONTROLLER_ANALOG_LEFT_X
+
+#define INTAKE_ALL_IN pros::E_CONTROLLER_DIGITAL_R1
+#define INTAKE_ALL_OUT pros::E_CONTROLLER_DIGITAL_L1
+#define INTAKE_HOLD pros::E_CONTROLLER_DIGITAL_R2
+#define INTAKE_DROP pros::E_CONTROLLER_DIGITAL_A
+
+#define LOADER_TOGGLE pros::E_CONTROLLER_DIGITAL_L2
+#define RAMP_TOGGLE pros::E_CONTROLLER_DIGITAL_DOWN
+#define COLOR_TOGGLE pros::E_CONTROLLER_DIGITAL_Y
+#define FINGER_TOGGLE 
+*/
+
+int autonnumber = -2;
+
+Pose startPose = {-48, -16.25, 180};
+
+ConstantContainer fbConstants = {4, 0.1, 2.7};
+ConstantContainer thetaConstantsSub90 = {0.5, 0.2, 26};
+ConstantContainer thetaConstantsAbove90 = {0.5, 0.24, 32};
+
+double fbTol = 1;
+double thetaTolSub90 = 2.5;
+double thetaTolAbove90 = 3.5;
+
+#define FRONT_LEFT -13
+#define MID_LEFT -12
+#define BACK_LEFT 11
+
+#define FRONT_RIGHT 18
+#define MID_RIGHT 19
+#define BACK_RIGHT -20
+
+#define R_INPUT 3
+#define STORAGE 2
+#define R_OUTPUT 1
+
+#define LEFT_ODOM 4
+#define RIGHT_ODOM 5
+#define PERP_ODOM 99
+
+#define FRONT_DIST 99
+#define RIGHT_DIST 99
+#define LEFT_DIST 99
+
+#define INERTIAL_A 14
+#define INERTIAL_B 15
+
+#define COLOR 99
+
+#define RAMP 1
+#define LOADER 2
+#define SEXJOKE 3
+
+#define ODOM_DIAMETER 2
+
 // Controllers
     pros::Controller master(pros::E_CONTROLLER_MASTER);
 
 // Motors
     // Differential Drivetrain
         
-        pros::Motor topLeft(-9, pros::v5::MotorGears::blue, pros::v5::MotorEncoderUnits::degrees);
-        pros::Motor midLeft(-5, pros::v5::MotorGears::blue, pros::v5::MotorEncoderUnits::degrees);
-        pros::Motor backLeft(12, pros::v5::MotorGears::blue, pros::v5::MotorEncoderUnits::degrees);
+        pros::Motor topLeft(FRONT_LEFT, pros::v5::MotorGears::blue, pros::v5::MotorEncoderUnits::degrees);
+        pros::Motor midLeft(MID_LEFT, pros::v5::MotorGears::blue, pros::v5::MotorEncoderUnits::degrees);
+        pros::Motor backLeft(BACK_LEFT, pros::v5::MotorGears::blue, pros::v5::MotorEncoderUnits::degrees);
 
-        pros::Motor topRight(7, pros::v5::MotorGears::blue, pros::v5::MotorEncoderUnits::degrees);
-        pros::Motor midRight(3, pros::v5::MotorGears::blue, pros::v5::MotorEncoderUnits::degrees);
-        pros::Motor backRight(-8, pros::v5::MotorGears::blue, pros::v5::MotorEncoderUnits::degrees);
+        pros::Motor topRight(FRONT_RIGHT, pros::v5::MotorGears::blue, pros::v5::MotorEncoderUnits::degrees);
+        pros::Motor midRight(MID_RIGHT, pros::v5::MotorGears::blue, pros::v5::MotorEncoderUnits::degrees);
+        pros::Motor backRight(BACK_RIGHT, pros::v5::MotorGears::blue, pros::v5::MotorEncoderUnits::degrees);
         
     // Intake
-        pros::Motor input(18, pros::v5::MotorGears::green, pros::v5::MotorEncoderUnits::degrees);
-        pros::Motor storage(17, pros::v5::MotorGears::green, pros::v5::MotorEncoderUnits::degrees);
-        pros::Motor output(19, pros::v5::MotorGears::green, pros::v5::MotorEncoderUnits::degrees);
+        pros::Motor stage1(R_INPUT, pros::v5::MotorGears::green, pros::v5::MotorEncoderUnits::degrees);
+        pros::Motor stage2(STORAGE, pros::v5::MotorGears::green, pros::v5::MotorEncoderUnits::degrees);
+        pros::Motor stage3(R_OUTPUT, pros::v5::MotorGears::green, pros::v5::MotorEncoderUnits::degrees);
 
     // Sensors
-        pros::Rotation parallelLeftOdom(12);
-        pros::Rotation parallelRightOdom(13);
-        pros::Rotation perpOdom(11);
+        pros::Rotation parallelLeftOdom(LEFT_ODOM);
+        pros::Rotation parallelRightOdom(RIGHT_ODOM);
+        pros::Rotation perpOdom(PERP_ODOM);
 
-        pros::Distance front(99);
-        pros::Distance left(11);
-        pros::Distance right(13);
+        pros::Distance front(FRONT_DIST);
+        pros::Distance left(LEFT_DIST);
+        pros::Distance right(RIGHT_DIST);
 
-        pros::IMU inertial1(14);
-        pros::IMU inertial2(15);
+        pros::IMU inertial1(INERTIAL_A);
+        pros::IMU inertial2(INERTIAL_B);
 
-        pros::Optical color(20);
+        pros::Optical color(COLOR);
 
     // Three-Wire Devices
-        pros::adi::DigitalOut unloader(8);
-        pros::adi::DigitalOut aligner(1);
-        pros::adi::DigitalOut descorer(2);
+        pros::adi::DigitalOut ramp(RAMP);
+        pros::adi::DigitalOut loader(LOADER);
+        pros::adi::DigitalOut sexjoke(SEXJOKE);
 
 // Program Module Initialization
 
-    DiffChassis chassis = DiffChassis({&topLeft, &midLeft, &backLeft}, {&topRight, &midRight, &backRight});
+    DiffChassis chassis = DiffChassis({&topLeft, &midLeft, &backLeft}, {&topRight, &midRight, &backRight}, FB_INPUT, ROT_INPUT);
 
-    OdomPod leftOdom(&parallelLeftOdom, 2);
-    OdomPod rightOdom(&parallelRightOdom, 2);
+    OdomPod leftOdom(&parallelLeftOdom, ODOM_DIAMETER);
+    OdomPod rightOdom(&parallelRightOdom, ODOM_DIAMETER);
     TrackingSensor fbTrack(
         []() -> double {
             return ((leftOdom.measure() + rightOdom.measure()) / 2);
@@ -76,7 +150,7 @@
         }
     );
 
-    OdomPod perpendicularOdom = OdomPod(&perpOdom, 2);
+    OdomPod perpendicularOdom = OdomPod(&perpOdom, ODOM_DIAMETER);
     TrackingSensor lrTrack(
         []() -> double {
             return perpendicularOdom.measure();
@@ -96,7 +170,7 @@
 
     TrackingSensor headingTracker(
         []() -> double {
-            return Kalman2.getFilteredHeading();
+            return inertial2.get_heading();
         }
     );
 
@@ -123,17 +197,7 @@
         }
     );
 
-    Pose startPose = {0, 0, 0};
-
-    Odometry odom(fbTrack, headingTracker, startPose, lrTrack);
-
-    ConstantContainer fbConstants = {4, 0.1, 2.7};
-    ConstantContainer thetaConstantsSub90 = {3, 0.2, 26};
-    ConstantContainer thetaConstantsAbove90 = {2.3, 0.24, 32};
-
-    double fbTol = 1;
-    double thetaTolSub90 = 2.5;
-    double thetaTolAbove90 = 3.5;
+    Odometry odom(fbTrack, headingTracker, startPose);
 
     PIDController fbPID(fbTrack, fbConstants, chassis.m_fbOutputCorrect, fbTol);
     PIDController thetaPIDSub90(PIDHeadingTracker, thetaConstantsSub90, chassis.m_thetaOutputCorrect, thetaTolSub90);
@@ -142,27 +206,6 @@
     // PIDSet robotPIDs(&xPID, &yPID, &thetaPIDSub90, &thetaPIDAbove90);
     PoseTracker currentPose(&odom);
 
-    TrackingSensor frontDistance(
-        []() -> double {
-            double val = front.get();
-            return val == 9999 ? -1 : (val / 10) / 2.54;
-        }
-    );
-
-    TrackingSensor leftDistance(
-        []() -> double {
-            double val = left.get();
-            return val == 9999 ? -1 : (val / 10) / 2.54;
-        }
-    );
-
-    TrackingSensor rightDistance(
-        []() -> double {
-            double val = right.get();
-            return val == 9999 ? -1 : (val / 10) / 2.54;
-        }
-    );
-
     TrackingSensor linAngleTracker(
         []() -> double {
             double offsetFromHeading = chassis.m_lAng.get() < 180 ? chassis.m_lAng.get() : chassis.m_lAng.get() - 360;
@@ -170,10 +213,36 @@
         }
     );
 
-    // VelocityController follower(&chassis.m_xOutput, &chassis.m_yOutput, &chassis.m_thetaOutput, &currentPose, robotPIDs);
+    struct WhichPID {
+        PIDController* operator()(double heading) {
+            if (std::abs(heading) < cutoff) {
+                return below;
+            } else {
+                return above;
+            }
+        }
+        PIDController* below;
+        PIDController* above;
+        int cutoff;
+    };
 
-    ParticleFilter mcl(frontDistance, leftDistance, rightDistance, headingTracker, 
-                       chassis.m_lVel, linAngleTracker, chassis.m_aVel, 
-                       {{-4, 7.5}, {-7.5, 0}, {7.5, 0}}, {0, -90, 90});
+    WhichPID thetaPID = {&thetaPIDSub90, &thetaPIDAbove90, 90};
+
+    double makeRelative(double heading) {
+        int dir = std::signbit(heading) ? -1 : 1;
+        
+        heading = std::abs(heading) - headingTracker.get();
+        if (heading < 0) {heading += 360;}
+        if (dir < 0) {heading = -1 * (360 - heading);}
+
+        return heading;
+    }
+
+    void manualTurn(double heading, double range) {
+        waitUntil((inertial2.get_heading() > heading - (range / 2)) && (inertial2.get_heading() < heading + (range / 2)));
+    }
+
+
+    // VelocityController follower(&chassis.m_xOutput, &chassis.m_yOutput, &chassis.m_thetaOutput, &currentPose, robotPIDs);
 
 #endif

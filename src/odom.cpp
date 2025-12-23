@@ -77,7 +77,7 @@ Odometry::Odometry(TrackingSensor movementSensor, // this sensor should track ho
     m_robotPose = startPosition;
 
     // resets the rotational sensor to zero
-    movementSensor.reset();
+    movementSensor.set(0);
 
     // sets the headings to the heading offset
     headingSensor.set(startPosition.heading);

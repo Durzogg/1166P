@@ -66,23 +66,27 @@ class HoloChassis {
 
 class DiffChassis {
     public:
-        DiffChassis(std::vector<pros::Motor*> left, std::vector<pros::Motor*> right);
+        DiffChassis(std::vector<pros::Motor*> left, std::vector<pros::Motor*> right, 
+                    pros::controller_analog_e_t fbInput, pros::controller_analog_e_t rotInput);
         DiffChassis(std::vector<pros::Motor*> left, std::vector<pros::Motor*> right,
+                    pros::controller_analog_e_t fbInput, pros::controller_analog_e_t rotInput,
                     PIDController* fbPID, PIDController* thetaPID);
         void addPID(PIDController* fbPID, PIDController* thetaPID);
         ~DiffChassis();
 
         void move(void);
-        void move_relative(int distance, int speed);
+        void move_relative(double distance, int speed, bool nonblocking = true);
         void brake(void);
         void brakeMode(pros::MotorBrake type);
         void driverControl(pros::Controller controller, double dz);
         void continuousPower(void);
-        void moveToPoint(Point localPoint, bool nonblocking = false);
+        void moveToPoint(Point point, bool nonblocking = false, bool reverse = false);
 
         void setFB(double power);
         void setTheta(double power);
 
+        pros::controller_analog_e_t m_fbIn;
+        pros::controller_analog_e_t m_rotIn;
 
         PowerUnit m_fbOutput;
         PowerUnit m_fbOutputCorrect;

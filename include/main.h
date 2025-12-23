@@ -78,7 +78,7 @@ void opcontrol(void);
 #endif
 
 // macros
-#define waitUntil(condition) while (!(condition)) {pros::delay(50);}
+#define waitUntil(condition) while (!(condition)) {pros::delay(15);}
 
 //hif
 
