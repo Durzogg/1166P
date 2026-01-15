@@ -12,7 +12,7 @@
 #include "mcl.h"
 
 // MASON SCHEME
-
+/*
 #define FB_INPUT pros::E_CONTROLLER_ANALOG_RIGHT_Y
 #define ROT_INPUT pros::E_CONTROLLER_ANALOG_LEFT_X
 
@@ -25,8 +25,8 @@
 #define RAMP_TOGGLE pros::E_CONTROLLER_DIGITAL_RIGHT
 #define COLOR_TOGGLE pros::E_CONTROLLER_DIGITAL_A
 #define FINGER_TOGGLE pros::E_CONTROLLER_DIGITAL_B
+*/
 
-/*
 // DANE SCHEME
 #define FB_INPUT pros::E_CONTROLLER_ANALOG_RIGHT_Y
 #define ROT_INPUT pros::E_CONTROLLER_ANALOG_LEFT_X
@@ -39,16 +39,21 @@
 #define LOADER_TOGGLE pros::E_CONTROLLER_DIGITAL_L2
 #define RAMP_TOGGLE pros::E_CONTROLLER_DIGITAL_DOWN
 #define COLOR_TOGGLE pros::E_CONTROLLER_DIGITAL_Y
-#define FINGER_TOGGLE 
-*/
+#define FINGER_TOGGLE pros::E_CONTROLLER_DIGITAL_RIGHT
+
 
 int autonnumber = -2;
 
-Pose startPose = {-48, -16.25, 180};
+// low goal
+// Pose startPose = {-47, -17, 180};
+// high goal
+// Pose startPose = {-47, 17, 0};
+// sawp high->low
+Pose startPose = {-45.5, 1.5, 180};
 
 ConstantContainer fbConstants = {4, 0.1, 2.7};
-ConstantContainer thetaConstantsSub90 = {0.5, 0.2, 26};
-ConstantContainer thetaConstantsAbove90 = {0.5, 0.24, 32};
+ConstantContainer thetaConstantsSub90 = {1, 0.15, 8};
+ConstantContainer thetaConstantsAbove90 = {0.7, 0.1, 32};
 
 double fbTol = 1;
 double thetaTolSub90 = 2.5;
@@ -77,7 +82,7 @@ double thetaTolAbove90 = 3.5;
 #define INERTIAL_A 14
 #define INERTIAL_B 15
 
-#define COLOR 99
+#define COLOR 10
 
 #define RAMP 1
 #define LOADER 2
@@ -131,7 +136,7 @@ double thetaTolAbove90 = 3.5;
     OdomPod rightOdom(&parallelRightOdom, ODOM_DIAMETER);
     TrackingSensor fbTrack(
         []() -> double {
-            return ((leftOdom.measure() + rightOdom.measure()) / 2);
+            return ((-leftOdom.measure() + rightOdom.measure()) / 2);
         },
         [](double val) {
             parallelLeftOdom.set_position(val);
@@ -141,6 +146,19 @@ double thetaTolAbove90 = 3.5;
         []() {
             parallelLeftOdom.reset_position();
             parallelRightOdom.reset_position();
+            return;
+        }
+    );
+    double distAtLastReset = 0;
+    TrackingSensor PIDfbTrack(
+        []() -> double {
+            return ((-leftOdom.measure() + rightOdom.measure()) / 2) - distAtLastReset;
+        },
+        [](double val) {
+            return;
+        },
+        []() {
+            distAtLastReset = ((-leftOdom.measure() + rightOdom.measure()) / 2);
             return;
         }
     );
@@ -175,17 +193,19 @@ double thetaTolAbove90 = 3.5;
     );
 
     double distFromLastReset = 0;
-    double lastHeading = 0;
+    double lastResetHead = 0;
+    double lastHeading = startPose.heading;
     TrackingSensor PIDHeadingTracker(
         []() -> double {
-            double changeInHeading = getAggregatedHeading(Kalman1, Kalman2) - lastHeading;
+            double changeInHeading = inertial2.get_heading() - lastHeading;
             if (changeInHeading > 315) {
                 changeInHeading -= 360;
             } else if (changeInHeading < -315) {
                 changeInHeading += 360;
             }
             distFromLastReset += changeInHeading;
-            lastHeading = getAggregatedHeading(Kalman1, Kalman2);
+            lastHeading = inertial2.get_heading();
+
             return distFromLastReset;
         },
         [](double val) {
@@ -193,13 +213,14 @@ double thetaTolAbove90 = 3.5;
         },
         []() {
             distFromLastReset = 0;
+            lastResetHead = getAggregatedHeading(Kalman1, Kalman2);
             return;
         }
     );
 
     Odometry odom(fbTrack, headingTracker, startPose);
 
-    PIDController fbPID(fbTrack, fbConstants, chassis.m_fbOutputCorrect, fbTol);
+    PIDController fbPID(PIDfbTrack, fbConstants, chassis.m_fbOutputCorrect, fbTol);
     PIDController thetaPIDSub90(PIDHeadingTracker, thetaConstantsSub90, chassis.m_thetaOutputCorrect, thetaTolSub90);
     PIDController thetaPIDAbove90(PIDHeadingTracker, thetaConstantsAbove90, chassis.m_thetaOutputCorrect, thetaTolAbove90);
 
@@ -213,30 +234,7 @@ double thetaTolAbove90 = 3.5;
         }
     );
 
-    struct WhichPID {
-        PIDController* operator()(double heading) {
-            if (std::abs(heading) < cutoff) {
-                return below;
-            } else {
-                return above;
-            }
-        }
-        PIDController* below;
-        PIDController* above;
-        int cutoff;
-    };
-
-    WhichPID thetaPID = {&thetaPIDSub90, &thetaPIDAbove90, 90};
-
-    double makeRelative(double heading) {
-        int dir = std::signbit(heading) ? -1 : 1;
-        
-        heading = std::abs(heading) - headingTracker.get();
-        if (heading < 0) {heading += 360;}
-        if (dir < 0) {heading = -1 * (360 - heading);}
-
-        return heading;
-    }
+    HeadingPIDSelector thetaPID = {&thetaPIDSub90, &thetaPIDSub90, 100};
 
     void manualTurn(double heading, double range) {
         waitUntil((inertial2.get_heading() > heading - (range / 2)) && (inertial2.get_heading() < heading + (range / 2)));

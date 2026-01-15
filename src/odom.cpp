@@ -265,7 +265,7 @@ Point Odometry::transformToLocal(Point globalPoint) {
     double localX = (change.x * std::sin((M_PI / 180) * fixAngle(m_headingSensor.get()))) + (change.y * std::cos((M_PI / 180) * fixAngle(m_headingSensor.get())));
     double localY = (change.x * std::cos((M_PI / 180) * fixAngle(m_headingSensor.get()))) + (change.y * std::sin((M_PI / 180) * fixAngle(m_headingSensor.get())));
 
-    std::cout << "{" << std::cos((M_PI / 180) * fixAngle(m_headingSensor.get())) << ", " << change.y << "}\n";
+    // std::cout << "{" << std::cos((M_PI / 180) * fixAngle(m_headingSensor.get())) << ", " << change.y << "}\n";
 
     return {localX, localY};
 }

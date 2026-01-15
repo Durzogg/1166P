@@ -70,8 +70,8 @@ class DiffChassis {
                     pros::controller_analog_e_t fbInput, pros::controller_analog_e_t rotInput);
         DiffChassis(std::vector<pros::Motor*> left, std::vector<pros::Motor*> right,
                     pros::controller_analog_e_t fbInput, pros::controller_analog_e_t rotInput,
-                    PIDController* fbPID, PIDController* thetaPID);
-        void addPID(PIDController* fbPID, PIDController* thetaPID);
+                    PIDController* fbPID, HeadingPIDSelector* thetaPID);
+        void addPID(PIDController* fbPID, HeadingPIDSelector* thetaPID);
         ~DiffChassis();
 
         void move(void);
@@ -79,8 +79,8 @@ class DiffChassis {
         void brake(void);
         void brakeMode(pros::MotorBrake type);
         void driverControl(pros::Controller controller, double dz);
-        void continuousPower(void);
-        void moveToPoint(Point point, bool nonblocking = false, bool reverse = false);
+        void continuousPower(bool pidStatus, bool manStatus);
+        void moveToPoint(Pose current, Point goal, bool turn = true, bool nonblocking = false, bool reverse = false);
 
         void setFB(double power);
         void setTheta(double power);
@@ -109,10 +109,12 @@ class DiffChassis {
         double m_thetaCorrect;
 
         PIDController* m_fbPID;
-        PIDController* m_thetaPID;
+        HeadingPIDSelector* m_thetaPID;
         bool m_hasPID;
 
         pros::Mutex chassisLock;
+        bool pidStatus;
+        bool manStatus;
         pros::Task* chassisTask;
 };
 

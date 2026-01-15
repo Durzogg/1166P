@@ -335,3 +335,13 @@ double bind180(double heading) {
     if (heading > 180) {heading -= 360;}
     return heading;
 }
+
+double makeRelative(double currentHeading, double goalHeading) {
+    int dir = std::signbit(goalHeading) ? -1 : 1;
+    
+    goalHeading = std::abs(goalHeading) - currentHeading;
+    if (goalHeading < 0) {goalHeading += 360;}
+    if (dir < 0) {goalHeading = -1 * (360 - goalHeading);}
+
+    return goalHeading;
+}

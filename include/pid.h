@@ -66,4 +66,17 @@ class PIDController {
         double p_time = 0;
 };
 
+struct HeadingPIDSelector {
+    PIDController* operator()(double heading) {
+        if (std::abs(heading) < cutoff) {
+            return below;
+        } else {
+            return above;
+        }
+    }
+    PIDController* below;
+    PIDController* above;
+    int cutoff;
+};
+
 #endif

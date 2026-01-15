@@ -310,12 +310,19 @@ DiffChassis::DiffChassis(std::vector<pros::Motor*> left, std::vector<pros::Motor
     m_thetaPID = NULL;
     m_hasPID = false;
 
-    chassisTask = NULL;
+    chassisTask = new pros::Task([this](){
+        while (true) {
+            if (this->pidStatus || this->manStatus) {
+                this->move();
+                pros::delay(5);
+            }
+        }
+    });
 }
 
 DiffChassis::DiffChassis(std::vector<pros::Motor*> left, std::vector<pros::Motor*> right,
                          pros::controller_analog_e_t fbInput, pros::controller_analog_e_t rotInput,
-                         PIDController* fbPID, PIDController* thetaPID) 
+                         PIDController* fbPID, HeadingPIDSelector* thetaPID) 
             : DiffChassis(left, right, fbInput, rotInput)
 {
     m_fbPID = fbPID;
@@ -323,7 +330,7 @@ DiffChassis::DiffChassis(std::vector<pros::Motor*> left, std::vector<pros::Motor
     m_hasPID = true;
 }
 
-void DiffChassis::addPID(PIDController* fbPID, PIDController* thetaPID) {
+void DiffChassis::addPID(PIDController* fbPID, HeadingPIDSelector* thetaPID) {
     m_fbPID = fbPID;
     m_thetaPID = thetaPID;
     m_hasPID = true;
@@ -336,18 +343,24 @@ DiffChassis::~DiffChassis() {
 }
 
 void DiffChassis::move() {
-    double g_distBetweenWheels = 10.5;
+    if (!this->pidStatus) {
+        m_fbCorrect = 0;
+        m_thetaCorrect = 0;
+    }
+    if (!this->manStatus) {
+        m_fbPower = 0;
+        m_thetaPower = 0;
+    }
     for (int i = 0; i < m_left.size(); i++) {
-        m_left[i]->move((m_fbPower + m_fbCorrect) + (((m_thetaPower + m_thetaCorrect) * g_distBetweenWheels) / 2));
+        m_left[i]->move((m_fbPower + m_fbCorrect) + (m_thetaPower + m_thetaCorrect));
     }
     for (int i = 0; i < m_right.size(); i++) {
-        m_right[i]->move((m_fbPower + m_fbCorrect) - (((m_thetaPower + m_thetaCorrect) * g_distBetweenWheels) / 2));
+        m_right[i]->move((m_fbPower + m_fbCorrect) - (m_thetaPower + m_thetaCorrect));
     }
 }
 
 void DiffChassis::move_relative(double distance, int speed, bool nonblocking) {
-    bool suspended = false;
-    if (!chassisLock.try_lock()) {chassisTask->suspend(); this->brake(); suspended = true;}
+    this->continuousPower(false, false);
 
     distance = (distance / (M_PI * 3.25)) * 360;
 
@@ -361,7 +374,6 @@ void DiffChassis::move_relative(double distance, int speed, bool nonblocking) {
         m_right[i]->move_relative(distance, speed);
     }
     waitUntil(((std::abs(m_left[0]->get_position() - initialLDist) >= std::abs(distance)) && (std::abs(m_left[0]->get_position() - initialLDist) >= std::abs(distance))) || nonblocking);
-    if (suspended) {chassisTask->resume();}
 }
 
 void DiffChassis::brake() {
@@ -376,6 +388,7 @@ void DiffChassis::brake() {
 }
 
 void DiffChassis::driverControl(pros::Controller controller, double dz) {
+    this->continuousPower(false, true);
     m_fbPower = controller.get_analog(m_fbIn);
     m_thetaPower = controller.get_analog(m_rotIn);
     if ((m_fbPower < dz) && (m_fbPower > -dz)) {
@@ -409,34 +422,27 @@ void DiffChassis::brakeMode(pros::MotorBrake type) {
     }
 }
 
-void DiffChassis::continuousPower(void) {
-    bool hasNotStarted = chassisLock.try_lock();
-    if (hasNotStarted) {
-        chassisTask = new pros::Task([this](){
-                while (true) {
-                this->move();
-                pros::delay(5);
-            }
-        });
-    }
-}
+void DiffChassis::continuousPower(bool pidStatus, bool manStatus) {this->pidStatus = pidStatus; this->manStatus = manStatus;}
 
-void DiffChassis::moveToPoint(Point point, bool nonblocking, bool reverse) {
+void DiffChassis::moveToPoint(Pose current, Point goal, bool turn, bool nonblocking, bool reverse) {
+    int rev = reverse ? -1 : 1;
+    int dir = 1;
     if (!m_hasPID) {
         return;
     }
-    bool wasCont = !chassisLock.try_lock();
-    if (!wasCont) {
-        chassisLock.unlock();
-        this->continuousPower();
-    }
-    double goalHead = findHeadingOfLine({0, 0}, point);
+    this->continuousPower(true, false);
+    double goalHead = findHeadingOfLine({current.x, current.y}, goal);
     if (reverse) {
         goalHead += 180;
         if (goalHead > 360) {goalHead -= 360;}
     }
-    std::cout << goalHead << "\n";
-    // m_thetaPID->movement(goalHead, false);
-    m_fbPID->movement(calculateDistance({0, 0}, point), nonblocking);
+    if (makeRelative(current.heading, dir * goalHead) > 180) {
+        dir = -1;
+    }
+    std::cout << makeRelative(current.heading, dir * goalHead) << "\n";
+    if (turn) {
+        m_thetaPID->operator()(makeRelative(current.heading, dir * goalHead))->movement(makeRelative(current.heading, dir * goalHead));
+    }
+    m_fbPID->movement(rev * calculateDistance({current.x, current.y}, goal), nonblocking);
     return;
 }

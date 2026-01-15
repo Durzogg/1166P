@@ -31,6 +31,7 @@ void PIDController::movement(
         m_movementTask = new pros::Task([this, setPoint, customs, executeAts](){this->movement(setPoint, false, customs, executeAts);});
         return;
     }
+
     m_sensor.reset();
 
     // PID Calculation Variables
@@ -150,13 +151,15 @@ double PIDController::calculateOutput(
 			integral = 0;
 			}
 		*/
-		if ((integral > 100) || (integral < -100)) {
+
+		// kI (integral constant) brings integral down to a reasonable/useful output number
+		double integralOut = integral * m_constants.kI;
+
+        if ((integral > 100) || (integral < -100)) {
 			integral = integral > 100
 				? 100
 				: -100;
-			}
-		// kI (integral constant) brings integral down to a reasonable/useful output number
-		double integralOut = integral * m_constants.kI;
+		}
 
 		// adds integral to return structure for compounding
 		p_integral = integral;
@@ -184,6 +187,7 @@ double PIDController::calculateOutput(
 
 	// Adds the results of each of the calculations together to get the desired power
 		double power = proportionalOut + integralOut + derivativeOut;
+        // std::cout << "p = " << proportionalOut << ", i = " << integralOut << ", d = " << derivativeOut << "\n";
 
 	// returns a PIDReturn structure
 		return power;
