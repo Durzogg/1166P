@@ -42,14 +42,24 @@
 #define FINGER_TOGGLE pros::E_CONTROLLER_DIGITAL_RIGHT
 
 
-int autonnumber = -2;
+// 1 = low goal
+// 2 = high goal
+// 3 = Solo AWP
+// 4 = 7 long, low side
+int autonnumber = 2;
+
+// 0 = standard
+// 1 = replace autos 1 and 2 with finger push end
+int variant = 0;
 
 // low goal
 // Pose startPose = {-47, -17, 180};
 // high goal
-// Pose startPose = {-47, 17, 0};
+Pose startPose = {-47, 17, 0};
 // sawp high->low
-Pose startPose = {-45.5, 1.5, 180};
+// Pose startPose = {-45.5, 1.5, 180};
+// 7 long, low side
+// Pose startPose = {-46, -15, 90};
 
 ConstantContainer fbConstants = {4, 0.1, 2.7};
 ConstantContainer thetaConstantsSub90 = {1, 0.15, 8};

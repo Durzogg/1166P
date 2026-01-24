@@ -406,11 +406,11 @@ void DiffChassis::driverControl(pros::Controller controller, double dz) {
 }
 
 void DiffChassis::setFB(double power) {
-    m_fbPower = power;
+    m_fbCorrect = power;
 }
 
 void DiffChassis::setTheta(double power) {
-    m_thetaPower = power;
+    m_thetaCorrect = power;
 }
 
 void DiffChassis::brakeMode(pros::MotorBrake type) {
