@@ -11,13 +11,13 @@ void initialize() {
 	pros::lcd::initialize();
 	inertial1.set_heading(startPose.heading);
 	inertial2.set_heading(startPose.heading);
-    Kalman1.startFilter();
-    Kalman2.startFilter();
+    // Kalman1.startFilter();
+    // Kalman2.startFilter();
 	parallelLeftOdom.set_position(0);
 	parallelRightOdom.set_position(0);
 	// perpOdom.set_position(0);
-	odom.updateLoop();
-	chassis.addPID(&fbPID, &thetaPID);
+	// odom.updateLoop();
+	// chassis.addPID(&fbPID, &thetaPID);
 	// mcl.start();
 	color.set_led_pwm(100);
 	master.print(0, 0, "Initialized!");
@@ -65,6 +65,8 @@ void autonomous() {
 	stage3.tare_position();
 
 	int time = 0;
+	int startTime = pros::millis();
+	int adjDir = 1;
 	pros::Task stopOut([] () {
 		if (autonnumber > 1) {
 			waitUntil(color.get_hue() > 100);
@@ -153,7 +155,7 @@ void autonomous() {
 			pros::delay(500);
 			stage1.move(-128);
 			stage2.move(-128);
-			chassis.move_relative(15, 200, false);
+			chassis.move_relative(15.5, 200, false);
 			pros::delay(1000);
 			
 			// move to Long Goal and score all prior blocks in goal
@@ -191,12 +193,12 @@ void autonomous() {
 			chassis.move_relative(5, 200, false);
 			pros::delay(300);
 			stage3.brake();
-			chassis.moveToPoint(odom.m_robotPose, {-11, 8}, true, false, true);
+			chassis.moveToPoint(odom.m_robotPose, {-10, 7}, true, false, true);
 			ramp.set_value(true);
 			stage1.move(-128);
 			stage2.move(-128);
 			stage3.move(-128);
-			pros::delay(3000);
+			pros::delay(1500);
 			chassis.move_relative(5, 200, false);
 			break;
 
@@ -215,19 +217,19 @@ void autonomous() {
 			pros::delay(500);
 			stage1.move(-128);
 			stage2.move(-128);
-			chassis.move_relative(14.5, 200, false);
+			chassis.move_relative(15.5, 200, false);
 			chassis.setFB(50);
 			pros::delay(550);
 			
 			// move to Long Goal and score all prior blocks in goal
-			chassis.moveToPoint(odom.m_robotPose, {-30, 43}, false, false, true);
+			chassis.moveToPoint(odom.m_robotPose, {-31, 43}, false, false, true);
 			chassis.setFB(-50);
 			stage3.move(-128);
 			time = pros::millis();
 			if (autonnumber < 1) {
-				waitUntil((color.get_hue() > 100) || (pros::millis() - time > 950));
+				waitUntil((color.get_hue() > 100) || (pros::millis() - time > 1050));
 			} else {
-				waitUntil((color.get_hue() < 20) || (pros::millis() - time > 950));
+				waitUntil((color.get_hue() < 20) || (pros::millis() - time > 1050));
 			}
 			pros::delay(100);
 			stage3.brake();
@@ -242,12 +244,12 @@ void autonomous() {
 			
 			// grab mid-Blocks across field, then score into low goal
 			loader.set_value(false);
-			chassis.moveToPoint(odom.m_robotPose, {-22, 25});
+			chassis.moveToPoint(odom.m_robotPose, {-20, 22});
 			stage3.brake();
 			loader.set_value(true);
 			chassis.move_relative(5, 200, false);
-			pros::delay(300);
-			chassis.moveToPoint(odom.m_robotPose, {-8, 9}, true, false, true);
+			pros::delay(200);
+			chassis.moveToPoint(odom.m_robotPose, {-10, 11}, true, false, true);
 			stage1.move(-128);
 			stage2.move(-128);
 			// stage3.move(-128);
@@ -263,7 +265,7 @@ void autonomous() {
 			stage3.brake();
 			loader.set_value(false);
 			ramp.set_value(false);
-			chassis.moveToPoint(odom.m_robotPose, {-36, -48}, true, false, false);
+			chassis.moveToPoint(odom.m_robotPose, {-32, -48}, true, false, false);
 			thetaPID.operator()(makeRelative(odom.m_robotPose.heading, 280))->movement(makeRelative(odom.m_robotPose.heading, 280));
 			chassis.move_relative(-30, 300);
 			// chassis.moveToPoint(odom.m_robotPose, {-30, -47}, true, false, true);
@@ -278,12 +280,12 @@ void autonomous() {
 			// intake center blocks
 			stage1.move(-128);
 			stage2.move(-128);
-			chassis.moveToPoint(odom.m_robotPose, {-23, -23}, true, false, false);
+			chassis.moveToPoint(odom.m_robotPose, {-22.5, -21}, true, false, false);
 			loader.set_value(true);
 			pros::delay(100);
 
 			// get blocks from loader
-			chassis.moveToPoint(odom.m_robotPose, {-47, -45}, true);
+			chassis.moveToPoint(odom.m_robotPose, {-47, -47.5}, true);
 			thetaPID.operator()(makeRelative(odom.m_robotPose.heading, 280))->movement(makeRelative(odom.m_robotPose.heading, 280));
 			
 			// move to Loader and intake from Loader
@@ -295,7 +297,7 @@ void autonomous() {
 			pros::delay(1000);
 			
 			// move to Long Goal and score all prior blocks in goal
-			chassis.moveToPoint(odom.m_robotPose, {-33, -43}, false, false, true);
+			chassis.moveToPoint(odom.m_robotPose, {-33, -46}, false, false, true);
 			chassis.setFB(-50);
 			stage3.move(-128);
 			time = pros::millis();
@@ -317,16 +319,123 @@ void autonomous() {
 			// finger push into control zone
 			loader.set_value(false);
 			sexjoke.set_value(true);
-			chassis.moveToPoint(odom.m_robotPose, {-36, -59}, true, false, true);
+			chassis.moveToPoint(odom.m_robotPose, {-36, -58.5}, true, false, true);
 			sexjoke.set_value(false);
-			chassis.moveToPoint(odom.m_robotPose, {-12, -60}, true, false, true);
+			chassis.moveToPoint(odom.m_robotPose, {-15, -59.5}, true, false, true);
+			// waitUntil(pros::millis() - startTime > 14500);
+			// sexjoke.set_value(true);
 			break;
+
+		case 5:
+		case -5:
+			// grab mid-Blocks across field, then score into low goal
+			stage1.move(-128);
+			stage2.move(-128);
+			loader.set_value(false);
+			chassis.moveToPoint(odom.m_robotPose, {-23, -21}, false);
+			loader.set_value(true);
+			chassis.move_relative(4, 200, false);
+			pros::delay(300);
+			stage1.brake();
+			stage2.brake();
+			stage3.brake();
+			loader.set_value(false);
+			chassis.moveToPoint(odom.m_robotPose, {-11, -14}, true);
+			adjDir = (makeRelative(odom.m_robotPose.heading, adjDir * 45) < 180) ? adjDir : -adjDir;
+			thetaPID.operator()(makeRelative(odom.m_robotPose.heading, adjDir * 45))->movement(makeRelative(odom.m_robotPose.heading, adjDir * 45));
+			stage1.move(96);
+			stage2.move(96);
+			stage3.move(96);
+			pros::delay(1000);
+			// chassis.move_relative(-5, 200, false);
+			stage1.move(-128);
+			stage2.move(-128);
+			stage3.brake();
+
+			// back into Loader territory
+			chassis.moveToPoint(odom.m_robotPose, {-35, -44}, false, false, true);
+			thetaPID.operator()(makeRelative(odom.m_robotPose.heading, -270))->movement(makeRelative(odom.m_robotPose.heading, -270));
+
+			// move to Loader and intake from Loader
+			loader.set_value(true);
+			pros::delay(500);
+			stage1.move(-128);
+			stage2.move(-128);
+			chassis.move_relative(25, 200, false);
+			pros::delay(700);
+			
+			// move to Long Goal and score all prior blocks in goal
+			chassis.moveToPoint(odom.m_robotPose, {-32, -43}, false, false, true);
+			chassis.setFB(-50);
+			stage3.move(-128);
+			time = pros::millis();
+			if (autonnumber < 1) {
+				waitUntil((color.get_hue() > 100) || (pros::millis() - time > 1200));
+			} else {
+				waitUntil((color.get_hue() < 20) || (pros::millis() - time > 1200));
+			}
+			pros::delay(100);
+			stage3.brake();
+			chassis.moveToPoint(odom.m_robotPose, {-36, -47}, false);
+			if (autonnumber < 1) {
+				if (color.get_hue() > 100) {stage3.move(-128);}
+			} else {
+				if (color.get_hue() < 20) {stage3.move(-128);}
+			}
+			stopOut.resume();
+
+			// wing push
+			loader.set_value(false);
+			sexjoke.set_value(true);
+			chassis.moveToPoint(odom.m_robotPose, {-31, -58}, true, false, true);
+			adjDir = (makeRelative(odom.m_robotPose.heading, adjDir * (180 + findHeadingOfLine({odom.m_robotPose.x, odom.m_robotPose.y}, {-15, -59}))) < 180) ? adjDir : -adjDir;
+			thetaPID.operator()(makeRelative(odom.m_robotPose.heading, adjDir * (180 + findHeadingOfLine({odom.m_robotPose.x, odom.m_robotPose.y}, {-15, -59}))))->movement(makeRelative(odom.m_robotPose.heading, adjDir * (180 + findHeadingOfLine({odom.m_robotPose.x, odom.m_robotPose.y}, {-15, -59}))));
+			sexjoke.set_value(false);
+			chassis.moveToPoint(odom.m_robotPose, {-15, -59}, false, false, true);
+			break;
+
+		case 666:
+			chassis.moveToPoint(odom.m_robotPose, {-47, -43}, false);
+			/*
+			thetaPID.operator()(makeRelative(odom.m_robotPose.heading, 270))->movement(makeRelative(odom.m_robotPose.heading, 270));
+		
+			// move to Loader and intake from Loader
+			loader.set_value(true);
+			pros::delay(500);
+			stage1.move(-128);
+			stage2.move(-128);
+			// chassis.move_relative(14, 200, false);
+			pros::delay(1200);
+			
+			// move to Long Goal and score all prior blocks in goal
+			chassis.moveToPoint(odom.m_robotPose, {-45, -43}, false, false, true);
+			loader.set_value(false);
+			chassis.moveToPoint(odom.m_robotPose, {-36, -60}, true, false, false);
+			chassis.moveToPoint(odom.m_robotPose, {44, -62}, true, false, false);
+
+			// grab mid-Blocks across field, then score into low goal
+			chassis.moveToPoint(odom.m_robotPose, {-22, -22});
+			loader.set_value(true);
+			chassis.move_relative(5, 200, false);
+			pros::delay(300);
+			stage3.brake();
+			loader.set_value(false);
+			chassis.moveToPoint(odom.m_robotPose, {-10, -10}, true);
+			stage1.move(64);
+			stage2.move(64);
+			stage3.move(64);
+			pros::delay(3000);
+			chassis.move_relative(-5, 200, false);
+			*/
+			break;
+
+
 
 		case 10:
 			stage1.move(-128);
 			stage2.move(-128);
 			stage3.move(-128);
-			chassis.move_relative(10, 450, false);
+			chassis.move_relative(75, 450, false);
 
 	}
 }
@@ -361,7 +470,8 @@ void opcontrol() {
 	while (true) {
 		pros::lcd::print(0, "x = %f", currentPose.get().x);
 		pros::lcd::print(1, "y = %f", currentPose.get().y);
-		pros::lcd::print(2, "h = %f", currentPose.get().heading); /*
+		pros::lcd::print(2, "h1 = %f", inertial1.get_heading());
+		pros::lcd::print(3, "h2 = %f", inertial2.get_heading()); /*
 		std::cout << "{" << currentPose.get().x << ", " << currentPose.get().y << "}\n"; */
 	// Differential Drive Control
 		chassis.driverControl(master, deadzone);
